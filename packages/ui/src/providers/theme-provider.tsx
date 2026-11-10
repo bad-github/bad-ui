@@ -1,10 +1,11 @@
-import * as React from 'react';
+import { createContext, useState, useCallback, useLayoutEffect, useEffect, useMemo, useContext } from 'react';
+import type { ReactNode } from 'react';
 
 type Theme = 'dark' | 'light' | 'system';
 type ResolvedTheme = 'dark' | 'light';
 
 type ThemeProviderProps = {
-  children: React.ReactNode;
+  children: ReactNode;
   defaultTheme?: Theme;
   storageKey?: string;
   disableTransitionOnChange?: boolean;
@@ -17,7 +18,7 @@ type ThemeProviderState = {
 
 const COLOR_SCHEME_QUERY = '(prefers-color-scheme: dark)';
 
-const ThemeProviderContext = React.createContext<ThemeProviderState | undefined>(undefined);
+const ThemeProviderContext = createContext<ThemeProviderState | undefined>(undefined);
 
 // 校验存储值，同时将类型收窄为合法的主题选项。
 function isTheme(value: string | null): value is Theme {
@@ -113,10 +114,10 @@ export function ThemeProvider({
   disableTransitionOnChange = true,
 }: ThemeProviderProps) {
   // 使用惰性初始化，仅在挂载时读取存储。
-  const [theme, setThemeState] = React.useState<Theme>(() => readTheme(storageKey, defaultTheme));
+  const [theme, setThemeState] = useState<Theme>(() => readTheme(storageKey, defaultTheme));
 
   // 所有主动切换共用此入口，统一更新存储和 React 状态。
-  const setTheme = React.useCallback(
+  const setTheme = useCallback(
     (nextTheme: Theme) => {
       persistTheme(storageKey, nextTheme);
       setThemeState(nextTheme);
@@ -125,7 +126,7 @@ export function ThemeProvider({
   );
 
   // 在浏览器绘制前应用主题，避免先显示错误配色。
-  React.useLayoutEffect(() => {
+  useLayoutEffect(() => {
     let cleanup = applyTheme(theme, disableTransitionOnChange);
     const mediaQuery = window.matchMedia(COLOR_SCHEME_QUERY);
     const handleChange = () => {
@@ -144,7 +145,7 @@ export function ThemeProvider({
     };
   }, [theme, disableTransitionOnChange]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     // D 键切换当前实际配色；忽略已处理事件、输入法组合和长按重复。
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.defaultPrevented || event.isComposing || event.repeat) {
@@ -173,7 +174,7 @@ export function ThemeProvider({
     };
   }, [theme, setTheme]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     // storage 事件用于接收同源其他标签页的主题变更。
     const handleStorageChange = (event: StorageEvent) => {
       if (event.storageArea !== localStorage) {
@@ -202,7 +203,7 @@ export function ThemeProvider({
   }, [defaultTheme, storageKey]);
 
   // 保持上下文值的引用稳定，避免父组件重渲染引起无关更新。
-  const value = React.useMemo(
+  const value = useMemo(
     () => ({
       theme,
       setTheme,
@@ -215,7 +216,7 @@ export function ThemeProvider({
 
 // 获取主题上下文，并在缺少 Provider 时给出明确错误。
 export const useTheme = () => {
-  const context = React.useContext(ThemeProviderContext);
+  const context = useContext(ThemeProviderContext);
 
   if (context === undefined) {
     throw new Error('useTheme must be used within a ThemeProvider');
