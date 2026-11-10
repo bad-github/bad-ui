@@ -1,5 +1,4 @@
-import { Button } from '@workspace/ui/components/button';
-import { ThemeToggle } from '@workspace/ui/components/theme-toggle';
+import { Button, ThemeToggle } from '@workspace/ui/components';
 
 export function App() {
   return (

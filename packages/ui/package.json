@@ -36,6 +36,14 @@
     "typescript-eslint": "^8"
   },
   "exports": {
+    ".": "./src/index.ts",
+    "./components": "./src/components/index.ts",
+    "./providers": "./src/providers/index.ts",
+    "./hooks": "./src/hooks/index.ts",
+    "./lib": "./src/lib/index.ts",
+    "./styles": "./src/styles/index.css",
+    "./styles/themes": "./src/styles/themes/index.css",
+    "./styles/base-color": "./src/styles/base-color/index.css",
     "./globals.css": "./src/styles/globals.css",
     "./lib/*": "./src/lib/*.ts",
     "./components/*": "./src/components/*.tsx",

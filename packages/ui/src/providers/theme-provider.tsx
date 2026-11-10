@@ -1,5 +1,9 @@
+'use client';
+
 import { createContext, useState, useCallback, useLayoutEffect, useEffect, useMemo, useContext } from 'react';
 import type { ReactNode } from 'react';
+
+import { useHydrated } from '@workspace/ui/hooks/use-hydrated';
 
 type Theme = 'dark' | 'light' | 'system';
 type ResolvedTheme = 'dark' | 'light';
@@ -113,8 +117,10 @@ export function ThemeProvider({
   storageKey = 'theme',
   disableTransitionOnChange = true,
 }: ThemeProviderProps) {
-  // 使用惰性初始化，仅在挂载时读取存储。
-  const [theme, setThemeState] = useState<Theme>(() => readTheme(storageKey, defaultTheme));
+  const hydrated = useHydrated();
+  const [storedTheme, setThemeState] = useState<Theme>(() => readTheme(storageKey, defaultTheme));
+  // 水合首帧与服务端一致，完成后才使用浏览器保存的主题。
+  const theme = hydrated ? storedTheme : defaultTheme;
 
   // 所有主动切换共用此入口，统一更新存储和 React 状态。
   const setTheme = useCallback(
@@ -125,8 +131,10 @@ export function ThemeProvider({
     [storageKey]
   );
 
-  // 在浏览器绘制前应用主题，避免先显示错误配色。
+  // 水合完成后应用主题；服务端与水合首帧不访问系统配色或修改根元素。
   useLayoutEffect(() => {
+    if (!hydrated) return;
+
     let cleanup = applyTheme(theme, disableTransitionOnChange);
     const mediaQuery = window.matchMedia(COLOR_SCHEME_QUERY);
     const handleChange = () => {
@@ -143,9 +151,11 @@ export function ThemeProvider({
       mediaQuery.removeEventListener('change', handleChange);
       cleanup();
     };
-  }, [theme, disableTransitionOnChange]);
+  }, [theme, disableTransitionOnChange, hydrated]);
 
   useEffect(() => {
+    if (!hydrated) return;
+
     // D 键切换当前实际配色；忽略已处理事件、输入法组合和长按重复。
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.defaultPrevented || event.isComposing || event.repeat) {
@@ -172,7 +182,7 @@ export function ThemeProvider({
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [theme, setTheme]);
+  }, [theme, setTheme, hydrated]);
 
   useEffect(() => {
     // storage 事件用于接收同源其他标签页的主题变更。

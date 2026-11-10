@@ -1,10 +1,9 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 
-import '@workspace/ui/globals.css';
+import '@workspace/ui/styles';
 import { App } from './App.tsx';
-import { ThemeProvider } from '@workspace/ui/providers/theme-provider';
-import { PreferenceProvider } from '@workspace/ui/providers/preference-provider';
+import { ThemeProvider, PreferenceProvider } from '@workspace/ui/providers';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

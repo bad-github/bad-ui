@@ -1,3 +1,5 @@
+'use client';
+
 import { MoonIcon, SunIcon } from 'lucide-react';
 
 import { Button } from '@workspace/ui/components/button';

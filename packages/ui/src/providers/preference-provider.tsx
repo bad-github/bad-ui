@@ -1,47 +1,11 @@
+'use client';
+
 import { createContext, useMemo, useState, useCallback, useLayoutEffect, useEffect, useContext } from 'react';
 import type { ReactNode } from 'react';
 
-// color 用于选项色块预览：基础色取浅色模式的 muted-foreground，主题色取 primary。
-export const BASE_COLORS = [
-  { value: 'neutral', label: 'Neutral', color: 'oklch(0.556 0 0)' },
-  { value: 'mist', label: 'Mist', color: 'oklch(0.56 0.021 213.5)' },
-  { value: 'zinc', label: 'Zinc', color: 'oklch(0.552 0.016 285.938)' },
-] as const;
-
-// value 对应 CSS 的 data-theme 属性，label 用于展示，color 是固定的预览色。
-export const COLOR_THEMES = [
-  { value: 'neutral', label: 'Neutral', color: 'oklch(0.205 0 0)' },
-  { value: 'blue', label: 'Blue', color: 'oklch(0.488 0.243 264.376)' },
-  { value: 'green', label: 'Green', color: 'oklch(0.527 0.154 150.069)' },
-  { value: 'orange', label: 'Orange', color: 'oklch(0.553 0.195 38.402)' },
-  { value: 'pink', label: 'Pink', color: 'oklch(0.525 0.223 3.958)' },
-  { value: 'purple', label: 'Purple', color: 'oklch(0.496 0.265 301.924)' },
-  { value: 'red', label: 'Red', color: 'oklch(0.505 0.213 27.518)' },
-  { value: 'rose', label: 'Rose', color: 'oklch(0.514 0.222 16.935)' },
-  { value: 'sky', label: 'Sky', color: 'oklch(0.5 0.134 242.749)' },
-  { value: 'yellow', label: 'Yellow', color: 'oklch(0.852 0.199 91.936)' },
-] as const;
-
-// 圆角预设的 value 单位为 rem，可直接传给 setRadius，也可用于 borderRadius 预览。
-export const RADIUS_OPTIONS = [
-  { value: 0, label: '0' },
-  { value: 0.25, label: '0.25' },
-  { value: 0.5, label: '0.5' },
-  { value: 0.625, label: 'Default' },
-  { value: 0.75, label: '0.75' },
-  { value: 1, label: '1' },
-] as const;
-
-// 从选项集合推导合法标识，避免手动维护重复的联合类型。
-export type BaseColor = (typeof BASE_COLORS)[number]['value'];
-export type ColorTheme = (typeof COLOR_THEMES)[number]['value'];
-
-export type Preference = {
-  baseColor: BaseColor;
-  theme: ColorTheme;
-  /** 根字号单位 rem；0 表示直角，默认 0.625。 */
-  radius: number;
-};
+import { useHydrated } from '@workspace/ui/hooks/use-hydrated';
+import { BASE_COLORS, COLOR_THEMES, DEFAULT_PREFERENCE } from '@workspace/ui/lib/preference';
+import type { BaseColor, ColorTheme, Preference } from '@workspace/ui/lib/preference';
 
 type PreferenceProviderProps = {
   children: ReactNode;
@@ -55,12 +19,6 @@ type PreferenceContextValue = Preference & {
   setBaseColor: (baseColor: BaseColor) => void;
   setTheme: (theme: ColorTheme) => void;
   setRadius: (radius: number) => void;
-};
-
-const DEFAULT_PREFERENCE: Preference = {
-  baseColor: 'neutral',
-  theme: 'neutral',
-  radius: 0.625,
 };
 
 const PreferenceContext = createContext<PreferenceContextValue | undefined>(undefined);
@@ -113,8 +71,10 @@ export function PreferenceProvider({
   // 先补齐并校验调用方传入的默认值，再作为存储读取和重置时的回退值。
   const { baseColor, theme, radius } = normalizePreference(defaultPreference, DEFAULT_PREFERENCE);
   const defaults = useMemo(() => ({ baseColor, theme, radius }), [baseColor, theme, radius]);
-  // 惰性初始化：仅在挂载时读取存储，避免每次渲染都访问 localStorage。
-  const [preference, setPreference] = useState(() => readPreference(storageKey, defaults));
+  const hydrated = useHydrated();
+  const [storedPreference, setPreference] = useState(() => readPreference(storageKey, defaults));
+  // 服务端及客户端水合首帧使用相同默认值，水合后才向子组件公开本地偏好。
+  const preference = hydrated ? storedPreference : defaults;
 
   // 基于最新状态只更新基础色，保留主题与圆角；无效输入沿用当前值。
   const setBaseColor = useCallback((nextBaseColor: BaseColor) => {
@@ -133,21 +93,25 @@ export function PreferenceProvider({
 
   // 配色通过独立属性组合；圆角以内联变量覆盖主题默认值，不改动深浅模式类名。
   useLayoutEffect(() => {
+    if (!hydrated) return;
+
     const root = document.documentElement;
     // 在浏览器绘制前更新属性，分别匹配 base-color 和 themes 中的选择器。
     root.dataset.baseColor = preference.baseColor;
     root.dataset.theme = preference.theme;
     root.style.setProperty('--radius', `${preference.radius}rem`);
-  }, [preference]);
+  }, [preference, hydrated]);
 
-  // 初始化及偏好变化后统一持久化，将存储副作用与状态更新函数分离。
+  // 水合完成后才允许持久化，避免用首次渲染的默认值覆盖已有存储。
   useEffect(() => {
+    if (!hydrated) return;
+
     try {
       localStorage.setItem(storageKey, JSON.stringify(preference));
     } catch {
       // 写入失败不阻断页面偏好更新。
     }
-  }, [preference, storageKey]);
+  }, [preference, storageKey, hydrated]);
 
   useEffect(() => {
     // 接收其他标签页的变更；删除或清空存储时恢复默认偏好。

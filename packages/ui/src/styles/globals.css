@@ -2,21 +2,10 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
-@import "./themes/neutral.css";
-@import "./themes/blue.css";
-@import "./themes/green.css";
-@import "./themes/orange.css";
-@import "./themes/pink.css";
-@import "./themes/purple.css";
-@import "./themes/red.css";
-@import "./themes/rose.css";
-@import "./themes/sky.css";
-@import "./themes/yellow.css";
+@import "./themes/index.css";
 
 /* 基础色独立于主题，默认使用 Neutral。 */
-@import "./base-color/neutral.css";
-@import "./base-color/mist.css";
-@import "./base-color/zinc.css";
+@import "./base-color/index.css";
 
 @custom-variant dark (&:is(.dark *));
 @source "../../../apps/**/*.{ts,tsx}";
