@@ -1,5 +1,5 @@
-import { Button } from "@workspace/ui/components/button"
-import { ThemeToggle } from "@workspace/ui/components/theme-toggle"
+import { Button } from '@workspace/ui/components/button';
+import { ThemeToggle } from '@workspace/ui/components/theme-toggle';
 
 export function App() {
   return (
@@ -19,5 +19,5 @@ export function App() {
         </div>
       </div>
     </div>
-  )
+  );
 }
