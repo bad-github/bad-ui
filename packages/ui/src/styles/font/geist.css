@@ -1,0 +1,9 @@
+/* 可选字体入口，同时加载字体文件并设置 Tailwind 的默认无衬线字体。 */
+@import "@fontsource-variable/geist";
+
+@layer theme {
+  :root {
+    --font-sans: 'Geist Variable', sans-serif;
+    --default-font-family: var(--font-sans);
+  }
+}

@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useMemo, useState, useCallback, useLayoutEffect, useEffect, useContext } from 'react';
+import { createContext, useMemo, useRef, useState, useCallback, useLayoutEffect, useEffect, useContext } from 'react';
 import type { ReactNode } from 'react';
 
 import { useHydrated } from '@workspace/ui/hooks/use-hydrated';
@@ -11,7 +11,7 @@ type PreferenceProviderProps = {
   children: ReactNode;
   /** 可只覆盖部分默认值；已有的有效存储值优先。 */
   defaultPreference?: Partial<Preference>;
-  /** 三项偏好共用的 localStorage 键，与深浅模式的存储键分开。 */
+  /** 三项偏好共用的 localStorage 键，默认为 'bad-ui:preference'。 */
   storageKey?: string;
 };
 
@@ -62,34 +62,55 @@ function readPreference(storageKey: string, fallback: Preference): Preference {
   }
 }
 
+// 比较字段值，避免相同偏好触发重复渲染。
+function isSamePreference(current: Preference, next: Preference) {
+  return current.baseColor === next.baseColor && current.theme === next.theme && current.radius === next.radius;
+}
+
 // 管理基础色、主题配色和圆角；深浅模式继续由 ThemeProvider 管理。
 export function PreferenceProvider({
   children,
   defaultPreference,
-  storageKey = 'preference',
+  storageKey = 'bad-ui:preference',
 }: PreferenceProviderProps) {
   // 先补齐并校验调用方传入的默认值，再作为存储读取和重置时的回退值。
   const { baseColor, theme, radius } = normalizePreference(defaultPreference, DEFAULT_PREFERENCE);
   const defaults = useMemo(() => ({ baseColor, theme, radius }), [baseColor, theme, radius]);
   const hydrated = useHydrated();
   const [storedPreference, setPreference] = useState(() => readPreference(storageKey, defaults));
+  // 保存最新偏好，保证同一批次连续修改不同字段时保留先前修改。
+  const preferenceRef = useRef(storedPreference);
   // 服务端及客户端水合首帧使用相同默认值，水合后才向子组件公开本地偏好。
   const preference = hydrated ? storedPreference : defaults;
 
-  // 基于最新状态只更新基础色，保留主题与圆角；无效输入沿用当前值。
+  // 主动修改时才写入存储；跨标签页同步仅更新内存，避免删除后又写回默认值。
+  const updatePreference = useCallback((patch: Partial<Preference>) => {
+    const current = preferenceRef.current;
+    const next = normalizePreference({ ...current, ...patch }, current);
+    if (isSamePreference(current, next)) return;
+
+    preferenceRef.current = next;
+    setPreference(next);
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(next));
+    } catch {
+      // 写入失败不阻断页面偏好更新。
+    }
+  }, [storageKey]);
+
   const setBaseColor = useCallback((nextBaseColor: BaseColor) => {
-    setPreference((current) => normalizePreference({ ...current, baseColor: nextBaseColor }, current));
-  }, []);
+    updatePreference({ baseColor: nextBaseColor });
+  }, [updatePreference]);
 
   // 此处 theme 是配色方案（如 blue），并非 light / dark / system。
   const setTheme = useCallback((nextTheme: ColorTheme) => {
-    setPreference((current) => normalizePreference({ ...current, theme: nextTheme }, current));
-  }, []);
+    updatePreference({ theme: nextTheme });
+  }, [updatePreference]);
 
   // 圆角以 rem 保存，转换为 CSS 长度的工作由下方 effect 统一完成。
   const setRadius = useCallback((nextRadius: number) => {
-    setPreference((current) => normalizePreference({ ...current, radius: nextRadius }, current));
-  }, []);
+    updatePreference({ radius: nextRadius });
+  }, [updatePreference]);
 
   // 配色通过独立属性组合；圆角以内联变量覆盖主题默认值，不改动深浅模式类名。
   useLayoutEffect(() => {
@@ -102,17 +123,6 @@ export function PreferenceProvider({
     root.style.setProperty('--radius', `${preference.radius}rem`);
   }, [preference, hydrated]);
 
-  // 水合完成后才允许持久化，避免用首次渲染的默认值覆盖已有存储。
-  useEffect(() => {
-    if (!hydrated) return;
-
-    try {
-      localStorage.setItem(storageKey, JSON.stringify(preference));
-    } catch {
-      // 写入失败不阻断页面偏好更新。
-    }
-  }, [preference, storageKey, hydrated]);
-
   useEffect(() => {
     // 接收其他标签页的变更；删除或清空存储时恢复默认偏好。
     function handleStorageChange(event: StorageEvent) {
@@ -122,12 +132,9 @@ export function PreferenceProvider({
       }
 
       const next = parsePreference(event.newValue, defaults);
-      // 值相同时复用原对象，避免重复渲染和无意义的持久化写入。
-      setPreference((current) =>
-        current.baseColor === next.baseColor && current.theme === next.theme && current.radius === next.radius
-          ? current
-          : next
-      );
+      if (isSamePreference(preferenceRef.current, next)) return;
+      preferenceRef.current = next;
+      setPreference(next);
     }
 
     window.addEventListener('storage', handleStorageChange);

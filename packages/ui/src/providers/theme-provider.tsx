@@ -10,14 +10,21 @@ type ResolvedTheme = 'dark' | 'light';
 
 type ThemeProviderProps = {
   children: ReactNode;
+  /** 没有有效的已保存主题时使用的模式，默认为 'system'（跟随系统配色）。 */
   defaultTheme?: Theme;
+  /** 在 localStorage 中保存主题选择的键名，默认为 'bad-ui:theme'。 */
   storageKey?: string;
+  /** 切换主题时是否短暂禁用全页 CSS transition，让新配色立即生效。默认为 true。 */
   disableTransitionOnChange?: boolean;
+  /** 切换深浅主题的全局单键快捷键，使用 KeyboardEvent.key（如 'd' 或 'F8'），忽略大小写。省略时关闭。 */
+  keyboardShortcut?: string;
 };
 
 type ThemeProviderState = {
   theme: Theme;
   setTheme: (theme: Theme) => void;
+  /** 根据当前实际配色切换深浅模式，切换后停止跟随系统。 */
+  toggleTheme: () => void;
 };
 
 const COLOR_SCHEME_QUERY = '(prefers-color-scheme: dark)';
@@ -114,8 +121,9 @@ function isEditableTarget(target: EventTarget | null) {
 export function ThemeProvider({
   children,
   defaultTheme = 'system',
-  storageKey = 'theme',
+  storageKey = 'bad-ui:theme',
   disableTransitionOnChange = true,
+  keyboardShortcut,
 }: ThemeProviderProps) {
   const hydrated = useHydrated();
   const [storedTheme, setThemeState] = useState<Theme>(() => readTheme(storageKey, defaultTheme));
@@ -130,6 +138,11 @@ export function ThemeProvider({
     },
     [storageKey]
   );
+
+  // 按需解析系统配色，按钮和快捷键共用同一切换逻辑。
+  const toggleTheme = useCallback(() => {
+    setTheme(resolveTheme(theme) === 'dark' ? 'light' : 'dark');
+  }, [theme, setTheme]);
 
   // 水合完成后应用主题；服务端与水合首帧不访问系统配色或修改根元素。
   useLayoutEffect(() => {
@@ -154,9 +167,11 @@ export function ThemeProvider({
   }, [theme, disableTransitionOnChange, hydrated]);
 
   useEffect(() => {
-    if (!hydrated) return;
+    if (!hydrated || !keyboardShortcut) return;
 
-    // D 键切换当前实际配色；忽略已处理事件、输入法组合和长按重复。
+    const shortcutKey = keyboardShortcut.toLowerCase();
+
+    // 忽略已处理事件、输入法组合和长按重复。
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.defaultPrevented || event.isComposing || event.repeat) {
         return;
@@ -170,11 +185,11 @@ export function ThemeProvider({
         return;
       }
 
-      if (event.key.toLowerCase() !== 'd') {
+      if (event.key.toLowerCase() !== shortcutKey) {
         return;
       }
 
-      setTheme(resolveTheme(theme) === 'dark' ? 'light' : 'dark');
+      toggleTheme();
     };
 
     window.addEventListener('keydown', handleKeyDown);
@@ -182,7 +197,7 @@ export function ThemeProvider({
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [theme, setTheme, hydrated]);
+  }, [toggleTheme, hydrated, keyboardShortcut]);
 
   useEffect(() => {
     // storage 事件用于接收同源其他标签页的主题变更。
@@ -217,8 +232,9 @@ export function ThemeProvider({
     () => ({
       theme,
       setTheme,
+      toggleTheme,
     }),
-    [theme, setTheme]
+    [theme, setTheme, toggleTheme]
   );
 
   return <ThemeProviderContext.Provider value={value}>{children}</ThemeProviderContext.Provider>;

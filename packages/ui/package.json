@@ -41,18 +41,11 @@
     "./providers": "./src/providers/index.ts",
     "./hooks": "./src/hooks/index.ts",
     "./lib": "./src/lib/index.ts",
-    "./styles": {
-      "types": "./src/styles/index.d.ts",
-      "default": "./src/styles/index.css"
-    },
-    "./styles/themes": {
-      "types": "./src/styles/themes/index.d.ts",
-      "default": "./src/styles/themes/index.css"
-    },
-    "./styles/base-color": {
-      "types": "./src/styles/base-color/index.d.ts",
-      "default": "./src/styles/base-color/index.css"
-    },
+    "./styles/index.css": "./src/styles/index.css",
+    "./styles/body.css": "./src/styles/body.css",
+    "./styles/font/geist.css": "./src/styles/font/geist.css",
+    "./styles/themes/index.css": "./src/styles/themes/index.css",
+    "./styles/base-color/index.css": "./src/styles/base-color/index.css",
     "./globals.css": "./src/styles/globals.css",
     "./lib/*": "./src/lib/*.ts",
     "./components/*": "./src/components/*.tsx",

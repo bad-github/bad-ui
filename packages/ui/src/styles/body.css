@@ -1,0 +1,7 @@
+/* 可选页面配色，需与 @workspace/ui/styles/index.css 一起引入。 */
+@layer base {
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+  }
+}
