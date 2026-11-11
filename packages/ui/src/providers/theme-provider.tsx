@@ -3,7 +3,7 @@
 import { createContext, useState, useCallback, useLayoutEffect, useEffect, useMemo, useContext } from 'react';
 import type { ReactNode } from 'react';
 
-import { useHydrated } from '@workspace/ui/hooks/use-hydrated';
+import { useHydrated } from '@badnpm/ui/hooks/use-hydrated';
 
 type Theme = 'dark' | 'light' | 'system';
 type ResolvedTheme = 'dark' | 'light';

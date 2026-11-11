@@ -1,0 +1,22 @@
+{
+  // 继承组件库的严格类型检查、JSX 转换和编译目标等基础配置。
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // 基础配置用于检查类型，这里允许构建插件生成文件。
+    "noEmit": false,
+    // 存在类型错误时禁止输出，避免发布错误产物。
+    "noEmitOnError": true,
+    // JS 构建只编译运行代码，逐文件声明由独立的 rollup-plugin-dts 配置生成。
+    "declaration": false,
+    // 源码根目录，决定输出时保留哪些相对目录层级。
+    "rootDir": "./src",
+    // 编译输出目录，与 Rollup 的输出目录保持一致。
+    "outDir": "./dist",
+    // 自动加载 React 类型，避免工作区其他工具的全局类型混入构建。
+    "types": ["react", "react-dom"]
+  },
+  // 仅编译组件库源码，不把 Rollup 配置等文件作为组件输出。
+  "include": ["src"],
+  // 排除已安装依赖和上次构建的产物。
+  "exclude": ["node_modules", "dist"]
+}

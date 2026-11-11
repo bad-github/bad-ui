@@ -3,8 +3,8 @@
 import type { ComponentProps } from 'react';
 import { MoonIcon, SunIcon } from 'lucide-react';
 
-import { Button } from '@workspace/ui/components/button';
-import { useTheme } from '@workspace/ui/providers/theme-provider';
+import { Button } from '@badnpm/ui/components/button';
+import { useTheme } from '@badnpm/ui/providers/theme-provider';
 
 export type ThemeToggleProps = Omit<ComponentProps<typeof Button>, 'children'> & {
   /** 切换到深色模式的无障碍文案，默认为“切换到深色主题”。 */

@@ -3,9 +3,9 @@
 import { createContext, useMemo, useRef, useState, useCallback, useLayoutEffect, useEffect, useContext } from 'react';
 import type { ReactNode } from 'react';
 
-import { useHydrated } from '@workspace/ui/hooks/use-hydrated';
-import { BASE_COLORS, COLOR_THEMES, DEFAULT_PREFERENCE } from '@workspace/ui/lib/preference';
-import type { BaseColor, ColorTheme, Preference } from '@workspace/ui/lib/preference';
+import { useHydrated } from '@badnpm/ui/hooks/use-hydrated';
+import { BASE_COLORS, COLOR_THEMES, DEFAULT_PREFERENCE } from '@badnpm/ui/lib/preference';
+import type { BaseColor, ColorTheme, Preference } from '@badnpm/ui/lib/preference';
 
 type PreferenceProviderProps = {
   children: ReactNode;

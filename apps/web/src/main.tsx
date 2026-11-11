@@ -1,11 +1,11 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 
-import '@workspace/ui/styles/index.css';
-import '@workspace/ui/styles/body.css';
-import '@workspace/ui/styles/font/geist.css';
+import '@badnpm/ui/styles/index.css';
+import '@badnpm/ui/styles/body.css';
+import '@badnpm/ui/styles/font/geist.css';
 import { App } from './App.tsx';
-import { ThemeProvider, PreferenceProvider } from '@workspace/ui/providers';
+import { ThemeProvider, PreferenceProvider } from '@badnpm/ui';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

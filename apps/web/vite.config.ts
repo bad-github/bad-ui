@@ -9,6 +9,8 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': resolve(import.meta.dirname, './src'),
+      // 工作区 demo 直接使用源码，保留组件热更新及应用自身的 Tailwind 类扫描。
+      '@badnpm/ui': resolve(import.meta.dirname, '../../packages/ui/src'),
     },
   },
 });

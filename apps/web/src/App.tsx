@@ -1,4 +1,4 @@
-import { Button, ThemeToggle } from '@workspace/ui/components';
+import { Button, ThemeToggle } from '@badnpm/ui';
 
 export function App() {
   return (

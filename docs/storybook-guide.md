@@ -579,8 +579,8 @@ pnpm build-storybook
 当前仓库使用 pnpm workspace 和 Turborepo：
 
 - `apps/web`：React 19、Vite 8，已有 React 插件、Tailwind Vite 插件和 `@` 别名。
-- `packages/ui`：共享组件包 `@workspace/ui`，使用 Base UI、Tailwind CSS 4，包含 Button、Input、ThemeToggle 和主题相关 Provider。
-- Web 应用通过 `@workspace/ui/styles/index.css` 引入全局样式。
+- `packages/ui`：共享组件包 `@badnpm/ui`，使用 Base UI、Tailwind CSS 4，包含 Button、Input、ThemeToggle 和主题相关 Provider。
+- Web 应用通过 `@badnpm/ui/styles/index.css` 引入全局样式。
 - 仓库根目录目前没有 Storybook 或测试运行脚本。
 
 建议先把 Storybook 的运行配置和测试依赖放在 `apps/web`，stories 与 `packages/ui` 的组件放在一起。这样可以复用已有 Vite 环境，同时让组件的示例随组件维护。若未来组件文档需要独立发布和独立管理依赖，再迁移到 `apps/storybook`。
@@ -612,7 +612,7 @@ Story 文件可以采用 PascalCase，而组件保持项目当前的小写文件
 | `.storybook/*`                 | `apps/web/.storybook/*`                    |
 | `vitest.config.ts`             | `apps/web/vitest.config.ts`                |
 | `src/components/*.stories.tsx` | `packages/ui/src/components/*.stories.tsx` |
-| `../src/index.css`             | `@workspace/ui/styles/index.css`                     |
+| `../src/index.css`             | `@badnpm/ui/styles/index.css`                     |
 | `./Button`                     | 相邻 story 中使用 `./button`               |
 
 将 `main.ts` 的 stories 扫描范围改为：
@@ -625,7 +625,7 @@ stories: [
 ],
 ```
 
-在 preview 中使用 `import '@workspace/ui/styles/index.css'`。现有 `apps/web/vite.config.ts` 已包含 React、Tailwind Vite 插件及 `@` 别名，先确认继承生效，避免重复配置。
+在 preview 中使用 `import '@badnpm/ui/styles/index.css'`。现有 `apps/web/vite.config.ts` 已包含 React、Tailwind Vite 插件及 `@` 别名，先确认继承生效，避免重复配置。
 
 通用示例 Button 是教学用原生组件。实际落地时直接为现有 Button 写 story，不要替换组件实现；variant 使用现有的 `default`、`outline`、`secondary`、`ghost`、`destructive`、`link`，size 使用真实支持的值。禁用状态和点击回调断言可以沿用教学思路。
 
