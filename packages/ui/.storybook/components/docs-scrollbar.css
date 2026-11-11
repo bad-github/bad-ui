@@ -1,0 +1,37 @@
+/* 仅作用于 Docs 文档，示例 iframe 的独立主题不受影响。 */
+/* 高对比度模式保留系统滚动条；正常模式沿用 Docs 的深灰背景。 */
+@media (forced-colors: none) {
+  html[data-storybook-docs-theme='dark'],
+  html[data-storybook-docs-theme='dark'] * {
+    scrollbar-color: #737373 #222425;
+    scrollbar-width: thin;
+  }
+
+  /* 为不支持 scrollbar-color 的 WebKit 浏览器补齐轨道、圆角滑块与悬停状态。 */
+  @supports not (scrollbar-color: #737373 #222425) {
+    html[data-storybook-docs-theme='dark']::-webkit-scrollbar,
+    html[data-storybook-docs-theme='dark'] *::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    html[data-storybook-docs-theme='dark']::-webkit-scrollbar-track,
+    html[data-storybook-docs-theme='dark'] *::-webkit-scrollbar-track,
+    html[data-storybook-docs-theme='dark']::-webkit-scrollbar-corner,
+    html[data-storybook-docs-theme='dark'] *::-webkit-scrollbar-corner {
+      background: #222425;
+    }
+
+    html[data-storybook-docs-theme='dark']::-webkit-scrollbar-thumb,
+    html[data-storybook-docs-theme='dark'] *::-webkit-scrollbar-thumb {
+      background: #737373;
+      border: 2px solid #222425;
+      border-radius: 6px;
+    }
+
+    html[data-storybook-docs-theme='dark']::-webkit-scrollbar-thumb:hover,
+    html[data-storybook-docs-theme='dark'] *::-webkit-scrollbar-thumb:hover {
+      background: #8c8c8c;
+    }
+  }
+}

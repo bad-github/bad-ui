@@ -33,3 +33,5 @@ dist-ssr
 *.tsbuildinfo
 
 .pnpm-store
+# Storybook build output
+storybook-static

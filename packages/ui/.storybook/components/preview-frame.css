@@ -1,0 +1,23 @@
+/* 预览布局独立于产品组件样式，使用普通 CSS，无需扩展 Tailwind 扫描目录。 */
+.storybook-preview-frame {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* 工具随页面正常布局，靠右排列，避免覆盖组件或未来的弹层。 */
+.storybook-preview-frame__tools {
+  display: flex;
+  justify-content: flex-end;
+  padding: 16px;
+}
+
+/* 保留居中预览体验；长内容可以自然撑开页面。 */
+.storybook-preview-frame__content {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  padding: 16px;
+}

@@ -18,5 +18,5 @@
   // 仅编译组件库源码，不把 Rollup 配置等文件作为组件输出。
   "include": ["src"],
   // 排除已安装依赖和上次构建的产物。
-  "exclude": ["node_modules", "dist"]
+  "exclude": ["node_modules", "dist", "src/**/*.stories.ts", "src/**/*.stories.tsx"]
 }

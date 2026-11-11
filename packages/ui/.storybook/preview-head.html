@@ -1,0 +1,92 @@
+<!-- Storybook 按固定文件名将此内容注入预览 iframe 的 head，早于 React 组件挂载。 -->
+<!-- loading 使用 Neutral 基础色对应的最终值，首帧不依赖主题 CSS 或 React 加载。 -->
+<script>
+  // 优先使用 previewHead 注入的共享对象；未注入时也能通过具体 key 独立运行。
+  (() => {
+    const keys = window.__STORYBOOK_THEME_STORAGE_KEYS__;
+    const previewKey = keys?.preview ?? 'bad-ui:storybook:theme';
+    const managerKey = keys?.manager ?? 'bad-ui:storybook:manager-theme';
+
+    // 优先恢复预览的独立偏好，没有有效值时读取外围，最后默认深色。
+    let theme;
+    try {
+      const saved = localStorage.getItem(previewKey);
+      theme = saved === 'light' || saved === 'dark' || saved === 'system' ? saved : localStorage.getItem(managerKey);
+    } catch {
+      // 存储不可访问不阻止首帧显示，后续由 ThemeProvider 接管。
+    }
+    const dark = theme === 'system' ? window.matchMedia('(prefers-color-scheme: dark)').matches : theme !== 'light';
+    document.documentElement.classList.remove('light', 'dark');
+    document.documentElement.classList.add(dark ? 'dark' : 'light');
+  })();
+</script>
+
+<style>
+  /* 颜色取自 src/styles/base-color/neutral.css，调整基础色时需同步这里。 */
+  /* body 的固定配色仅用于加载阶段；story 显示后仍由组件库 CSS 决定背景与文字。 */
+  html:not(.dark),
+  html:not(.dark) body:not(.sb-show-main),
+  html:not(.dark) .sb-preparing-story,
+  html:not(.dark) .sb-preparing-docs {
+    background-color: oklch(1 0 0);
+    color: oklch(0.145 0 0);
+  }
+
+  html.dark,
+  html.dark body:not(.sb-show-main),
+  html.dark .sb-preparing-story,
+  html.dark .sb-preparing-docs {
+    background-color: oklch(0.145 0 0);
+    color: oklch(0.985 0 0);
+  }
+
+  /* 转圈使用弱化色作圆环，前景色作旋转指示，不依赖 CSS 变量。 */
+  .sb-loader {
+    border-color: oklch(0.97 0 0);
+    border-top-color: oklch(0.145 0 0);
+    mix-blend-mode: normal;
+  }
+
+  html.dark .sb-loader {
+    border-color: oklch(0.269 0 0);
+    border-top-color: oklch(0.985 0 0);
+  }
+
+  /* Docs 的初始骨架在 React 挂载前显示，不能依赖 DocsContainer 的主题。 */
+  /* 仅覆盖 preparing 遮罩里的静态节点，不影响加载完成后的预览和 Props 表格。 */
+  html.dark .sb-preparing-docs .sb-previewBlock {
+    background: #222425;
+    border-color: #383838;
+    box-shadow: none;
+  }
+
+  html.dark .sb-preparing-docs .sb-previewBlock_header {
+    box-shadow: none;
+    border-bottom: 1px solid #383838;
+  }
+
+  html.dark .sb-preparing-docs .sb-previewBlock_body {
+    background: oklch(0.145 0 0);
+  }
+
+  /* 工具图标、表格文字和按钮的骨架块统一使用较亮的深灰色。 */
+  html.dark .sb-preparing-docs .sb-previewBlock_icon,
+  html.dark .sb-preparing-docs .sb-argstableBlock th span,
+  html.dark .sb-preparing-docs .sb-argstableBlock td span,
+  html.dark .sb-preparing-docs .sb-argstableBlock-body button {
+    background-color: #414445;
+  }
+
+  html.dark .sb-preparing-docs .sb-argstableBlock-body {
+    border: 1px solid #383838;
+    box-shadow: none;
+  }
+
+  html.dark .sb-preparing-docs .sb-argstableBlock-body td {
+    background: #222425;
+  }
+
+  html.dark .sb-preparing-docs .sb-argstableBlock-body tr:not(:first-child) {
+    border-top-color: #383838;
+  }
+</style>

@@ -161,7 +161,7 @@ export default defineConfig([
     // JS 构建仍然只使用 src/index.ts，声明构建不生成 JS。
     input: Object.fromEntries(
       readdirSync(sourceDirectory, { recursive: true })
-        .filter((path) => /\.tsx?$/.test(path) && !path.endsWith('.d.ts'))
+        .filter((path) => /\.tsx?$/.test(path) && !path.endsWith('.d.ts') && !/\.stories\.tsx?$/.test(path))
         .map((path) => [path.replace(/\.tsx?$/, ''), join(sourceDirectory, path)])
     ),
     external: moduleBuild.external,
