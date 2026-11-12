@@ -44,10 +44,11 @@ const preview: Preview = {
     },
 
     a11y: {
-      // 'todo' - show a11y violations in the test UI only
-      // 'error' - fail CI on a11y violations
-      // 'off' - skip a11y checks entirely
-      test: 'todo',
+      // addon-a11y 使用 axe-core 检查渲染后的 DOM，由 Vitest 插件接入现有组件测试。
+      // error：发现违规就让测试失败，适用于本地命令和后续 CI，不只是面板提示。
+      // todo：仍检查，但只在 Storybook 中提示待修复问题，不作为失败门禁。
+      // off：跳过自动检查；本项目默认对所有 stories 启用 error，沿用插件默认规则。
+      test: 'error',
     },
   },
 };

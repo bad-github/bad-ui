@@ -1,0 +1,113 @@
+import { Meta, Canvas } from '@storybook/addon-docs/blocks';
+import * as InputStories from '../components/Input.stories';
+
+<Meta title="Documentation/Input Guide" />
+
+# Input 使用与测试指南
+
+Input 是单行输入框，封装了 Base UI 输入原语和默认样式，透传原生输入属性及事件。
+这份指南同时作为后续组件编写 stories、交互测试和无障碍示例的参考。
+
+## 基本用法
+
+```tsx
+import { Input } from '@badnpm/ui';
+import '@badnpm/ui/styles/index.css';
+
+<label htmlFor="email">邮箱</label>
+<Input id="email" name="email" type="email" autoComplete="email" />
+```
+
+- **无需 Provider**：单独使用 Input 不需要主题 Provider。
+- **保持单一职责**：Input 不自动创建标签、提示、提交按钮或业务校验。
+- **属性透传**：`id`、`name`、`required`、事件等通过组件的 `{...props}` 传到输入元素。
+- **使用组件文档**：侧边栏 **Components → Input → Docs** 提供属性表，单个 story 提供 Controls 和测试面板。
+
+## 标签与辅助说明
+
+- **`label`**：面向所有用户的可见标签，用 `htmlFor` 关联输入框的 `id`。
+- **`aria-label`**：没有可见标签时提供可访问名称；有可见标签时通常无需再设置。
+- **`placeholder`**：补充输入格式提示，不能代替标签。
+- **`name`**：表单字段名，不会自动成为可访问名称。
+- **`aria-describedby`**：关联辅助文字或错误提示的 id；目标元素需实际存在。
+
+<Canvas of={InputStories.WithLabel} />
+
+<Canvas of={InputStories.WithDescription} />
+
+## 受控与非受控
+
+- **非受控**：用 `defaultValue` 设置挂载时的初始值，后续值由 DOM 管理。
+- **受控**：调用方用 `value` 传入当前值，并在 `onChange` 中同步更新状态。
+- **避免混用**：不要同时传 `value` 和 `defaultValue`，也不要在组件生命周期内切换两种模式。
+- **读取输入**：在事件处理函数中读取 `event.currentTarget.value`；数值类型的该属性也仍是字符串。
+
+```tsx
+function NameInput() {
+  const [name, setName] = useState('');
+  return (
+    <Input
+      aria-label="姓名"
+      value={name}
+      onChange={(event) => setName(event.currentTarget.value)}
+    />
+  );
+}
+// useState 从 react 导入，Input 从 @badnpm/ui 导入。
+```
+
+<Canvas of={InputStories.Controlled} />
+
+## 禁用、只读与错误
+
+- **Disabled**：不可编辑或聚焦，原生表单提交时排除该字段。
+- **Read Only**：不可编辑，仍可聚焦、选择和复制，原生表单提交保留该字段。
+- **Invalid**：`aria-invalid` 表达调用方的校验结果，并触发错误样式；Input 不会自行判断业务输入是否正确。
+- **错误说明**：错误状态应配合清晰的文字提示，通过 `aria-describedby` 关联。
+
+<Canvas of={InputStories.Invalid} />
+
+## 原生输入约束
+
+- **Required**：空值不能通过原生必填校验；组件不会自动生成错误文案。
+- **Max Length**：限制适用文本类型的长度，按 UTF-16 码元计数，不能用来限制数值大小。
+- **Email**：验证邮箱格式，不验证邮箱是否真实存在。
+- **Password**：浏览器遮蔽显示；它不改变 JavaScript 能读取的原始值。
+- **Number**：`min`、`max`、`step` 参与有效性校验，不保证阻止用户输入超限值。
+
+这些约束不能代替服务端校验，具体交互遵循浏览器对输入类型的支持。
+
+## 场景与断言清单
+
+- **Default**：聚焦、输入、清空、Enter、Tab，以及四类事件回调。
+- **Disabled**：禁用语义、保持空值、不聚焦、不触发输入或焦点回调。
+- **Read Only**：可聚焦，输入或删除后值不变，不触发 `onChange`。
+- **Invalid**：错误提示可见、描述关联正确，修改内容后仍保留调用方传入的错误状态。
+- **With Label**：点击标签后聚焦，并具有正确的可访问名称。
+- **With Description**：辅助描述及 `name`、`autoComplete` 正确透传。
+- **Controlled**：输入值和调用方状态同步。
+- **With Default Value**：非受控初始值可被用户修改。
+- **Required**：空值无效，填写后有效。
+- **Max Length**：超过长度的输入被截断。
+- **Email**：无效格式与有效格式的原生校验结果。
+- **Password**：密码类型正确透传，输入值正确更新。
+- **Number**：超出范围无效，范围内的整数有效。
+
+## 如何阅读和运行测试
+
+- **Controls**：修改传给 Input 的 props；`value` 禁用控件，避免误造无法编辑的受控输入。
+- **Actions**：查看 `fn()` 记录的事件调用，日志本身不代表测试通过。
+- **Interactions**：查看 `play` 的操作和断言，`step` 用于组织步骤。
+- **Accessibility**：扫描实际渲染结果；全局 `test: 'error'` 让违规成为测试失败。
+- **命令行**：在 `packages/ui` 执行 `pnpm test-storybook`，或用 `pnpm test-storybook:watch` 监听修改。
+
+> `play` 会自动操作输入框，预览会保留测试结束时的状态。自动化测试基于各 story 的默认参数；通过 Controls 更改类型或约束后，原有断言不一定仍适用。
+
+## 后续组件如何取舍
+
+- 每个组件保留默认用法和重要状态，避免为了数量添加重复 stories。
+- 为关键行为编写断言，例如按钮点击、弹窗打开与关闭、菜单键盘导航。
+- 为复杂组合提供可访问名称、描述及错误示例，保留自动无障碍检查。
+- 复杂组件再补充专门指南；无需照搬 Input 的全部属性或测试场景。
+
+自动检查不能覆盖所有主题、浏览器、触摸设备和屏幕阅读器体验；视觉表现和真实辅助技术体验仍需人工验证。

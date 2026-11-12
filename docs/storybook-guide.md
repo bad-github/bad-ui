@@ -681,9 +681,13 @@ Docs 容器将当前主题写入自身文档的 `data-storybook-docs-theme`，�
 
 | 文件                | 已包含的场景               |
 | ------------------- | -------------------------- |
-| `Input.stories.tsx` | 默认、禁用、只读、错误提示 |
+| `Input.stories.tsx` | 默认、禁用、只读、错误、可见标签、辅助说明、受控、非受控初始值、必填、长度限制、邮箱、密码、数值，共 13 个场景 |
 
-当前仅保留 Input 示例，集中设计输入框；Button 和 ThemeToggle 的组件实现仍保留，暂不提供对应 stories。Input 有可访问名称，错误提示通过 `aria-describedby` 关联，`onChange` 使用 `storybook/test` 的 `fn()` 记录。
+当前仅保留 Input 示例，作为后续组件的详细参考；Button 和 ThemeToggle 的组件实现仍保留，暂不提供对应 stories。Input 有可访问名称，错误提示通过 `aria-describedby` 关联，四类事件使用 `storybook/test` 的 `fn()` 记录。`argTypes` 按基本属性、值管理、状态、校验、无障碍和事件分组，提供中文说明。
+
+`packages/ui/src/docs/input.mdx` 在侧边栏 **Documentation → Input Guide** 展示完整使用指南，组合可见标签、辅助说明、受控输入及错误示例，解释属性透传、原生校验与测试边界。示例中的 `label` 使用原生 HTML，本包尚未提供独立的 Field / Label 组件。
+
+新增组件时按实际需求选择关键场景即可，不必复制 Input 的所有属性和测试。涉及状态的 React 示例组件定义在模块顶层，避免在普通回调中调用 Hooks 或因重新定义组件导致状态重置。
 
 ### 隔离发布构建与检查范围
 
@@ -738,7 +742,7 @@ pnpm --filter @badnpm/ui build
 
 本节按照 Storybook Testing 引导清单的顺序记录本项目的测试接入过程。已接入的模块记录实际依赖、配置和验证状态；其余模块保留入口，后续逐项补充。
 
-目前已有组件预览、自动文档和 a11y 面板，并已安装 Vitest 插件及浏览器测试依赖、生成测试配置，添加组件测试运行命令。组件测试运行结果尚未确认，视觉测试、覆盖率报告和 CI 流程尚未接入。上文通用测试章节不能直接当作本仓库已经启用的能力。
+目前已有组件预览、自动文档和 a11y 面板，并已安装 Vitest 插件及浏览器测试依赖、生成测试配置，添加组件测试运行命令。Input 的 13 个场景已在 Chromium 中通过测试，含交互断言和已启用的无障碍检查。视觉测试、覆盖率报告和 CI 流程尚未接入。上文通用测试章节不能直接当作本仓库已经启用的能力。
 
 ### 安装 Vitest 插件（Install Vitest addon）
 
@@ -793,8 +797,8 @@ pnpm exec storybook add @storybook/addon-vitest@10.6.6
 - **`packages/ui/vitest.shims.d.ts`**
   - 引用 `@vitest/browser-playwright` 的类型声明，供 TypeScript 识别浏览器测试相关类型；它不执行测试。
 - **`packages/ui/.storybook/preview.tsx`**
-  - 增加 `parameters.a11y.test: 'todo'`：无障碍问题作为待处理项展示，不作为阻断测试的门禁。
-  - 具体的无障碍规则与失败策略，后续在“运行无障碍测试”模块完善。
+  - 安装向导初始增加 `parameters.a11y.test: 'todo'`：无障碍问题作为待处理项展示，不作为阻断测试的门禁。
+  - 后续“运行无障碍测试”模块已将其改为 `error`，发现违规时让测试失败。
 - **`packages/ui/package.json` 与 `pnpm-lock.yaml`**
   - 分别记录依赖声明和实际解析版本；安装向导未新增测试 script，运行命令在下一模块中添加。
 
@@ -802,7 +806,7 @@ pnpm exec storybook add @storybook/addon-vitest@10.6.6
 
 - **已确认**：依赖已安装，插件已注册，Vitest 浏览器配置已生成。
 - **版本差异**：虽然本节记录的命令指定 `10.6.6`，实际插件为 `10.6.7`，其 `peerDependencies.storybook` 要求 `^10.6.7`；当前 lockfile 中的 Storybook 为 `10.6.6`，不满足此要求。运行测试前需对齐兼容版本，本文暂不将其标记为验证通过。
-- **浏览器状态**：尚未验证 Chromium 二进制是否可用，不能只依据 `playwright` 依赖判断。
+- **浏览器状态**：后续已成功使用 Chromium 运行 13 个 Input 场景，确认本机测试浏览器可用；换机器时仍需安装对应浏览器。
 - **下一模块**：对齐版本后，运行现有 stories 的组件测试，记录执行命令和实际结果。后续再逐项补充交互、无障碍、视觉、覆盖率和 CI。
 
 官方参考：[Vitest 插件接入说明](https://storybook.js.org/docs/writing-tests/integrations/vitest-addon/index)。
@@ -851,7 +855,7 @@ pnpm --filter @badnpm/ui test-storybook
 #### 当前状态
 
 - 已添加单次运行和监听模式命令。
-- 实际测试结果尚未确认；运行前需检查上一模块记录的版本兼容性，以及 Chromium 是否安装完成。
+- 后续扩展 Input 后已完成浏览器验证：执行 `pnpm --filter @badnpm/ui test-storybook`，结果为 1 个测试文件、13 个测试通过。版本声明仍存在上一模块记录的兼容范围差异；通过本次测试不能代替依赖版本对齐。
 
 ### 编写交互测试（Test functionality with interactions）
 
@@ -921,15 +925,74 @@ pnpm test-storybook
 #### 验证状态
 
 - `pnpm --filter @badnpm/ui typecheck`：通过。
-- 浏览器测试尝试启动时被执行环境阻止监听本地端口，报错 `listen EPERM ::1:23315`；沙箱外运行未获批准，本次未执行到任何测试用例，不能据此认定交互断言通过或失败。
-- 请在本地终端执行上述命令完成浏览器验证。上一模块记录的 Storybook / 插件版本兼容问题仍需对齐。
+- 首次浏览器测试曾因沙箱监听端口权限受限而无法启动；后续在获准的沙箱外运行中，全部 13 个 Input 测试通过，包含新增的交互场景。
+- 当前场景已扩展为完整的 13 项清单，见 Storybook 的 **Documentation → Input Guide**；源码保留 API 中文注释。Storybook / 插件版本兼容范围差异仍需对齐。
 
 官方参考：[交互测试](https://storybook.js.org/docs/writing-tests/interaction-testing)。
 
 ### 运行无障碍测试（Run accessibility tests）
 
-- 接入步骤：待补充。
-- 当前已有 a11y 面板，自动化测试与 CI 门禁配置待接入。
+#### 复用现有插件
+
+本模块无需安装新依赖，也无需在每个 story 中手动调用扫描函数：
+
+- **`@storybook/addon-a11y`**：已在 `.storybook/main.ts` 的 `addons` 中注册，使用 axe-core 检查渲染后的 DOM，并在 Accessibility 面板展示结果。
+- **`@storybook/addon-vitest`**：将无障碍检查接入现有组件测试流程，复用 Vitest 的浏览器环境。
+- **现有 stories**：为扫描提供默认、禁用、只读、错误等场景；新增组件 story 后也会继承全局配置。
+
+#### 配置失败策略
+
+在 `packages/ui/.storybook/preview.tsx` 的全局 `parameters` 中，将安装向导生成的 `todo` 改为 `error`：
+
+```ts
+parameters: {
+  a11y: {
+    // 自动检查发现违规时，让本地和 CI 中的组件测试失败。
+    test: 'error',
+  },
+},
+```
+
+- **`error`**：运行检查，发现违规时报告测试失败。本项目采用此策略。
+- **`todo`**：运行检查，在 Storybook 中将违规显示为待处理警告，不阻断命令行或 CI。
+- **`off`**：跳过自动检查，仍可通过插件面板手动检查。
+
+当前沿用插件默认规则，不额外收窄检查范围、不关闭单条规则。组件或单个 story 的 `parameters.a11y` 可以覆盖全局设置；如确需临时改为 `todo`，应在对应代码旁说明原因和待修复问题。
+
+#### 执行与查看结果
+
+在 `packages/ui` 目录中复用已有命令：
+
+```sh
+pnpm test-storybook
+```
+
+- **命令行**：执行组件测试及已启用的无障碍检查；发现违规时测试失败并返回非零退出码。无需另建 `test-a11y` 命令。
+- **开发监听**：执行 `pnpm test-storybook:watch`，修改组件或 stories 后重新检查。
+- **Storybook 工作台**：执行 `pnpm storybook`，展开侧边栏测试控件，勾选 **Accessibility**，再点击 **Run component tests**。
+- **定位问题**：打开具体 story 的 **Accessibility** 面板，查看违规规则、受影响节点和修复建议。
+- **后续 CI**：接入相同测试命令即可复用失败策略；本模块没有创建 CI 工作流。
+
+面板结果需要区分：
+
+- **Violations**：自动检查发现的违规，需要修复。
+- **Passes**：通过的检查项。
+- **Incomplete**：工具无法确定，需要人工判断；不能当作通过，也不等同于已确认违规。
+
+#### Input 的检查范围
+
+- `aria-label` 为输入框提供可访问名称。
+- 错误场景通过 `aria-invalid` 标记状态，并用 `aria-describedby` 关联提示。
+- axe-core 自动检查适用的无障碍规则，包括标签、ARIA 和颜色对比度等；实际检查结果以浏览器报告为准。
+- 上一模块的 `play` 断言继续验证焦点和键盘行为。自动扫描不能替代 Tab 顺序、屏幕阅读器等人工验证，也不保证所有主题和交互中间状态都被覆盖。
+
+#### 验证状态
+
+- 已将全局失败策略切换为 `error`，并保留原有主题、样式和交互测试配置。
+- `pnpm --filter @badnpm/ui typecheck` 与 `.storybook/preview.tsx` 的 ESLint 检查均通过。
+- 后续 Chromium 验证通过：全局 `a11y.test: 'error'` 开启时，13 个 Input 测试均通过；未关闭规则或为单个 story 降级策略。结果只覆盖本次测试环境和场景，不代表全部主题及辅助技术均已人工验证。Storybook 与 Vitest 插件的版本差异仍需处理。
+
+官方参考：[无障碍测试接入与失败策略](https://storybook.js.org/docs/writing-tests/accessibility-testing)。
 
 ### 安装视觉测试插件（Install Visual Tests addon）
 
