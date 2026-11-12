@@ -1,6 +1,7 @@
 // Storybook 按配置目录中的固定入口名 preview 识别此文件，打包到浏览器预览 iframe 中。
 // 导出的全局配置会与组件 meta、单个 story 的配置共同决定最终预览行为。
 import type { Preview } from '@storybook/react-vite';
+import type { IndexEntry } from 'storybook/internal/types';
 import { withTheme } from './decorators/with-theme';
 import { ThemedDocsContainer } from './components/themed-docs-container';
 // 加载组件运行后的完整主题、页面配色和字体，保留 Vite 的样式热更新。
@@ -8,7 +9,12 @@ import '../src/styles/index.css';
 import '../src/styles/custom.css';
 import '../src/styles/font/geist.css';
 
-const preview: Preview = {
+// Storybook 直接执行提取出的排序函数源码，类型约束必须放在函数外。
+type SortedPreview = Preview & {
+  parameters: { options: { storySort: (a: IndexEntry, b: IndexEntry) => number } };
+};
+
+const preview: SortedPreview = {
   // 为所有组件启用自动文档页，组件 meta 可覆盖这些标签。
   tags: ['autodocs'],
   // 复用组件库 Provider 和 ThemeToggle，并接收顶部工具栏发来的外围主题。
@@ -16,16 +22,27 @@ const preview: Preview = {
   // 控制预览和插件行为，不作为组件 props 传入。
   parameters: {
     options: {
-      storySort: {
-        // 仅固定前两个顶层分组，其余分组与子目录按英文名称排序。
-        order: ['Development', 'Design', '*'],
-        method: 'alphabetical',
-        // 将单个 story 的显示名称也纳入字母排序，例如 Controlled 排在 Default 前。
-        // 为 false 时，不按 story 名称排序，同一组件内通常保留源码导出顺序。
-        includeNames: true,
-        // 使用英文区域的字母比较规则，避免排序结果随运行机器的默认语言变化。
-        // 只影响名称比较，不会将 Storybook 界面或文档内容切换为英文。
-        locales: 'en',
+      storySort: (a, b) => {
+        // 比较器会被 Storybook 单独执行，依赖和辅助逻辑均保留在函数内。
+        const priority = ['Development', 'Design'];
+        const left = a.title.split('/');
+        const right = b.title.split('/');
+        for (let index = 0; index < Math.max(left.length, right.length); index++) {
+          if (left[index] === right[index]) continue;
+          if (left[index] === undefined) return -1;
+          if (right[index] === undefined) return 1;
+          if (index === 0) {
+            const leftRank = priority.indexOf(left[index]);
+            const rightRank = priority.indexOf(right[index]);
+            const rank = (leftRank < 0 ? priority.length : leftRank) - (rightRank < 0 ? priority.length : rightRank);
+            if (rank) return rank;
+          }
+          const order = left[index].localeCompare(right[index], 'en');
+          if (order) return order;
+        }
+        // 同组 Docs 固定置顶，其他示例按显示名称的英文字母顺序排列。
+        if (a.type !== b.type) return a.type === 'docs' ? -1 : 1;
+        return a.name.localeCompare(b.name, 'en') || a.id.localeCompare(b.id, 'en');
       },
     },
     // 取消 Storybook 的外层居中容器，由 PreviewFrame 统一安排工具区和内容区。
