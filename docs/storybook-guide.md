@@ -610,7 +610,7 @@ packages/ui/
 └── src/components/
     ├── button.tsx
     ├── input.tsx
-    ├── Input.stories.tsx
+    ├── input.stories.tsx
     └── theme-toggle.tsx
 ```
 
@@ -677,17 +677,53 @@ Docs 容器将当前主题写入自身文档的 `data-storybook-docs-theme`，�
 
 ### 编写组件示例
 
-采用 CSF 3，通过 `Meta`、`StoryObj` 与 `satisfies` 检查类型，从 `@storybook/react-vite` 导入类型。story 文件使用 PascalCase，与现有小写组件文件相邻；不要从组件库入口导出 stories。
+采用 CSF 3，通过 `Meta`、`StoryObj` 与 `satisfies` 检查类型，从 `@storybook/react-vite` 导入类型。story 文件与对应源码保持同名，使用 kebab-case 并添加 `.stories.tsx` 后缀，与源码相邻；不要从组件库入口导出 stories。
 
 | 文件                | 已包含的场景               |
 | ------------------- | -------------------------- |
-| `Input.stories.tsx` | 默认、禁用、只读、错误、可见标签、辅助说明、受控、非受控初始值、必填、长度限制、邮箱、密码、数值，共 13 个场景 |
+| `input.stories.tsx` | 默认、禁用、只读、错误、可见标签、辅助说明、受控、非受控初始值、必填、长度限制、邮箱、密码、数值，共 13 个场景 |
 
-当前仅保留 Input 示例，作为后续组件的详细参考；Button 和 ThemeToggle 的组件实现仍保留，暂不提供对应 stories。Input 有可访问名称，错误提示通过 `aria-describedby` 关联，四类事件使用 `storybook/test` 的 `fn()` 记录。`argTypes` 按基本属性、值管理、状态、校验、无障碍和事件分组，提供中文说明。
+Components 分组保留 Input 作为后续组件的详细参考，并已补充 Button、ThemeToggle 示例。Input 有可访问名称，错误提示通过 `aria-describedby` 关联，四类事件使用 `storybook/test` 的 `fn()` 记录。`argTypes` 按基本属性、值管理、状态、校验、无障碍和事件分组，提供中文说明。
 
 `packages/ui/src/docs/input.mdx` 在侧边栏 **Documentation → Input Guide** 展示完整使用指南，组合可见标签、辅助说明、受控输入及错误示例，解释属性透传、原生校验与测试边界。示例中的 `label` 使用原生 HTML，本包尚未提供独立的 Field / Label 组件。
 
 新增组件时按实际需求选择关键场景即可，不必复制 Input 的所有属性和测试。涉及状态的 React 示例组件定义在模块顶层，避免在普通回调中调用 Hooks 或因重新定义组件导致状态重置。
+
+#### Providers 分组
+
+Provider 不直接渲染可见 UI，story 通过消费 Hook 的演示面板显示当前状态、提供操作按钮，再验证上下文、DOM 与存储是否同步。
+
+- **`src/providers/theme-provider.stories.tsx` → Providers / ThemeProvider**
+  - Default：浅色初始化、切换深浅模式，并持久化选择。
+  - System：跟随当前浏览器的系统配色，不写死预期深浅值。
+  - Saved Preference：已保存主题优先于默认主题。
+  - Keyboard Shortcut：输入区域内不触发快捷键，离开后可切换。
+  - Storage Sync：模拟跨标签页更新、无关键过滤及删除 / 清空通知。
+  - Storage Read Failure / Storage Write Failure：存储读写被拒绝时仍可运行。
+  - Keep Transitions：关闭切换时禁用过渡的选项后，主题仍正常应用。
+  - System Changes：模拟系统深浅色动态变化，并确认显式选择后停止跟随。
+- **`src/providers/preference-provider.stories.tsx` → Providers / PreferenceProvider**
+  - Default：修改基础色、配色和圆角，检查上下文、根节点属性及存储，并验证同一事件内连续修改多个字段。
+  - Custom Defaults：部分默认值自动补齐。
+  - Saved Preference：存储逐项校验，有效字段恢复、非法字段回退。
+  - Corrupted Storage：无效 JSON 回退到默认偏好。
+  - Storage Read Failure / Storage Write Failure：存储读写故障下仍保留页面功能。
+  - Storage Sync：模拟跨标签页更新、无关键、相同偏好、删除及清空通知。
+- **独立存储**：使用 `bad-ui:storybook:demo:theme` 和 `bad-ui:storybook:demo:preference`，不修改应用真实偏好。
+- **初始化与清理**：`.storybook/testing/provider-environment.ts` 配合 story 的 `beforeEach`，准备种子值并在离开示例时还原存储、html 类名、配色属性和圆角变量，避免污染其他预览。
+- **主题隔离**：ThemeProvider stories 设置 `isolatedThemeProvider: true`；全局 `withTheme` 装饰器跳过其默认 Provider 和外围同步包装，避免两个主题 Provider 争用同一个 html。PreferenceProvider stories 保留普通深浅主题环境。
+- **故障与事件模拟**：`.storybook/testing/provider-mocks.ts` 只针对示例专用键拦截 Storage 方法，清理时还原原描述符。`dispatchStorageChange` 模拟接收端通知，不代表已在真实第二标签页完成端到端验证；`mockSystemColor` 只替换配色查询，并在测试结束时恢复。
+- **检查边界**：仍未覆盖缺少 Provider 的 Hook 调用报错、部分键盘过滤、真实 SSR / 水合等路径；不能将现有通过结果理解为全部分支已验证。
+
+#### Button、ThemeToggle、Lib 与 Hooks 示例
+
+- **Components / Button**：`src/components/button.stories.tsx` 提供默认交互、全部样式、文字尺寸、禁用、图标尺寸及函数类名六个场景。验证鼠标 / Enter / Space 激活、Tab 跳过禁用按钮、图标按钮命名和函数 `className` 的组合行为。`variant="link"` 仅表达视觉样式，仍使用按钮语义。
+
+- **Components / ThemeToggle**：`src/components/theme-toggle.stories.tsx` 提供默认点击、取消切换、禁用三个场景。使用独立 ThemeProvider 和存储键，验证回调、主题状态、可访问名称及 `preventDefault()` 的取消行为。
+- **Lib / Preference**：`src/lib/preference.stories.tsx` 展示基础色、主题配色、圆角预设和默认偏好，并检查默认值引用的选项存在。
+- **Lib / Utils**：`src/lib/utils.stories.tsx` 展示从项目公共工具入口导入 `cn` 的类名组合。此文件仅转发上游函数，不重复测试上游全部功能。
+- **Hooks / useHydrated**：`src/hooks/use-hydrated.stories.tsx` 通过 React 消费组件展示 Hook，验证纯客户端渲染返回 true。服务端快照和真实水合需要独立的 SSR 测试环境，未通过此 story 覆盖。
+- 每个分组均由 story 的 `title` 声明，文件仍与对应实现相邻；继续使用全局自动文档与无障碍失败策略。
 
 ### 隔离发布构建与检查范围
 
@@ -742,7 +778,7 @@ pnpm --filter @badnpm/ui build
 
 本节按照 Storybook Testing 引导清单的顺序记录本项目的测试接入过程。已接入的模块记录实际依赖、配置和验证状态；其余模块保留入口，后续逐项补充。
 
-目前已有组件预览、自动文档和 a11y 面板，并已安装 Vitest 插件及浏览器测试依赖、生成测试配置，添加组件测试运行命令。Input 的 13 个场景已在 Chromium 中通过测试，含交互断言和已启用的无障碍检查。视觉测试、覆盖率报告和 CI 流程尚未接入。上文通用测试章节不能直接当作本仓库已经启用的能力。
+目前已有组件预览、自动文档和 a11y 面板，并已安装 Vitest 插件及浏览器测试依赖、生成测试配置，添加组件测试运行命令。Input 的 13 个场景已在 Chromium 中通过测试，含交互断言和已启用的无障碍检查，覆盖率报告也已生成验证。视觉测试暂缓，CI 流程尚未接入。上文通用测试章节不能直接当作本仓库已经启用的能力。
 
 ### 安装 Vitest 插件（Install Vitest addon）
 
@@ -779,7 +815,7 @@ pnpm exec storybook add @storybook/addon-vitest@10.6.6
   - **自定义位置**：设置 `PLAYWRIGHT_BROWSERS_PATH` 可更改浏览器存放位置；安装与运行测试时应使用一致的配置。
 - **`@vitest/coverage-v8`：`5.1.0`**
   - 为 Vitest 提供基于 V8 的代码覆盖率采集支持。
-  - 安装依赖不等于已生成报告；报告命令及配置留到“生成测试覆盖率报告”模块记录。
+  - 安装依赖不等于已生成报告；报告命令及配置见后续“生成测试覆盖率报告”模块。
 
 这些依赖服务于组件库开发与测试，不要求 npm 包使用者手动安装。
 本次向导将 Vitest、浏览器适配、覆盖率和 Playwright 的版本声明写为 `latest`；上述具体版本来自 lockfile，并非该声明永远解析出的版本。
@@ -843,7 +879,7 @@ pnpm --filter @badnpm/ui test-storybook
 #### 测试代码从哪里来
 
 - 上一步生成的 `vitest.config.ts` 已注册 `storybookTest`，它会根据 `.storybook/main.ts` 扫描现有 stories，并将它们转换为组件测试。
-- 现有 `Input.stories.tsx` 中的 Default、Disabled、ReadOnly、Invalid 就是基础测试场景，无需为本阶段重复创建 `.test.tsx` 文件。
+- 现有 `input.stories.tsx` 中的 Default、Disabled、ReadOnly、Invalid 就是基础测试场景，无需为本阶段重复创建 `.test.tsx` 文件。
 - 在尚未编写 `play` 时，主要验证各场景能否正常渲染；渲染成功不代表禁用、只读等行为已经通过断言验证。下一模块在这些 stories 中补充行为断言。
 - `onChange: fn()` 等配置只提供回调记录能力；需要编写操作和断言，才能验证回调是否按预期触发，具体留到交互测试模块。
 
@@ -861,7 +897,7 @@ pnpm --filter @badnpm/ui test-storybook
 
 #### 在 stories 中添加 play
 
-本模块复用已安装的 Vitest 插件，不增加测试依赖，也不新建重复的 `.test.tsx` 文件。测试直接写在 `packages/ui/src/components/Input.stories.tsx` 各个 story 的 `play` 函数中，组件渲染完成后执行。
+本模块复用已安装的 Vitest 插件，不增加测试依赖，也不新建重复的 `.test.tsx` 文件。测试直接写在 `packages/ui/src/components/input.stories.tsx` 各个 story 的 `play` 函数中，组件渲染完成后执行。
 
 - **`fn`**：从 `storybook/test` 导入，作为 `onChange`、`onFocus`、`onBlur`、`onKeyDown` 的替身回调，记录调用，供断言检查。
 - **`expect`**：从 `storybook/test` 导入，验证输入值、焦点、禁用状态、可访问描述以及回调调用。
@@ -888,7 +924,7 @@ export const Default: Story = {
 };
 ```
 
-这段代码仅展示聚焦步骤，完整实现见 `Input.stories.tsx`。操作、断言和步骤均使用 `await`，便于依序执行并在面板中追踪失败位置。
+这段代码仅展示聚焦步骤，完整实现见 `input.stories.tsx`。操作、断言和步骤均使用 `await`，便于依序执行并在面板中追踪失败位置。
 
 #### 本次覆盖的场景
 
@@ -996,15 +1032,101 @@ pnpm test-storybook
 
 ### 安装视觉测试插件（Install Visual Tests addon）
 
-- 接入步骤：待补充。
+- **状态：暂缓**。当前不安装插件、不连接外部服务。
+- **对应插件**：`@chromatic-com/storybook`，由 Storybook 维护者提供，将 Chromatic 视觉测试入口和结果集成到 Storybook 中。该插件独立发布版本，兼容性以其声明为准，不直接沿用 Storybook 的版本号。
+- **服务要求**：需要 Chromatic 账号和关联的 Chromatic 项目；该插件依赖云服务，并非本地离线截图工具。
+- **环境要求**：官方要求 Storybook 7.6 或以上；仓库需启用 Git 且至少有一次提交，并能访问 Chromatic 服务。
+- **项目配置要求**：本项目是 monorepo，UI 子项目应使用自己的 `chromatic.config.json` 关联对应的 Chromatic 项目，不能与其他子项目共用同一配置来运行不同项目。
+- **费用与额度**：截至 2026-11-12，官方 Free 套餐为每月 5,000 个计费快照，支持 Chrome，无需信用卡；更多额度和其他浏览器支持取决于套餐。实际额度与价格以[官方定价](https://www.chromatic.com/pricing)为准。
+- **资料**：[Visual Tests 插件官方说明](https://www.chromatic.com/docs/visual-tests-addon/)。
 
 ### 运行视觉测试（Run visual tests）
 
-- 接入步骤：待补充。
+- **状态：暂缓**。与上一模块配套，当前不建立截图基准、不上传 stories，也不运行云端截图对比。
+- **前置条件**：已安装并配置 `@chromatic-com/storybook`、完成 Chromatic 登录与项目关联，且账号有可用截图额度。
+- **测试内容**：将各 story 的截图与已接受的基准比较，发现颜色、尺寸、间距和布局等视觉变化；首次运行用于建立基准，后续变化需要人工判断是否符合预期。
+- **云端要求**：运行时会将 Storybook stories 发送至 Chromatic 云端截图，产生相应快照用量。
+- **场景要求**：有意义的状态需要单独提供 story 或模式；深浅主题、视口尺寸不会因已有切换按钮而自动获得完整覆盖。字体、动画、随机数据和异步内容需保持稳定，减少非预期截图差异。
+- **暂缓的影响**：目前缺少自动视觉回归检查，样式变化需要人工检查；不影响现有组件渲染、交互和无障碍测试，也不阻止组件库构建与 npm 发布。
+- **替代方案**：后续也可评估本地 Playwright 截图对比，无需 Chromatic 云服务，但需自行维护截图基准、运行环境与差异报告。这是独立方案，不是上述插件的离线模式。
 
 ### 生成测试覆盖率报告（Generate a coverage report）
 
-- 接入步骤：待补充。
+#### 使用现有依赖
+
+- **`@vitest/coverage-v8`**：安装 Vitest 插件时已经加入，用于采集 V8 执行覆盖率，当前与 Vitest 均锁定为 `5.1.0`。
+- **运行环境**：复用现有 Chromium 浏览器测试环境，不需要 Chromatic 或其他云服务。
+- **测试来源**：复用 stories 和 `play`，无需为了生成报告重复写测试文件；报告中发现遗漏后再补充有意义的测试。
+
+#### 配置统计范围和报告格式
+
+在 `packages/ui/vitest.config.ts` 的外层 `test` 中配置 `coverage`，与 `projects` 平级：
+
+```ts
+coverage: {
+  provider: 'v8',
+  include: ['src/**/*.{ts,tsx}'],
+  exclude: ['src/**/*.stories.{ts,tsx}', 'src/**/*.d.ts', 'src/**/index.ts'],
+  reporter: ['text', 'html'],
+  reportsDirectory: './coverage',
+},
+```
+
+- **`provider`**：使用已安装的 V8 覆盖率提供器收集代码执行信息。
+- **`include`**：统计 UI 包中所有 TS / TSX 源码，包括尚未被测试执行的文件；当前不局限于 Input。
+- **`exclude`**：排除 stories、类型声明及纯转发入口；入口文件以后若加入实际逻辑，需要重新评估这一排除规则。
+- **`reporter`**：`text` 输出终端摘要，`html` 生成可浏览的逐文件报告。
+- **`reportsDirectory`**：相对于 UI 包根目录，输出到 `packages/ui/coverage`；这是专用生成目录，默认在下一次采集前清理。
+
+未配置 `coverage.enabled: true`，仅在运行时传入 `--coverage` 才采集，避免普通测试每次都生成报告。目前也未配置覆盖率最低门槛，低覆盖率本身不会导致测试失败。
+
+#### 添加并执行命令
+
+在 UI 包的 `package.json` 中添加：
+
+```json
+"test-storybook:coverage": "vitest run --project=storybook --coverage"
+```
+
+- **`run`**：执行一次后退出。
+- **`--project=storybook`**：选择现有 Storybook 测试项目。
+- **`--coverage`**：在执行测试的同时采集并生成覆盖率报告，不会额外启动一套独立测试。
+
+在 `packages/ui` 目录执行：
+
+```sh
+pnpm test-storybook:coverage
+```
+
+在仓库根目录执行时使用：
+
+```sh
+pnpm --filter @badnpm/ui test-storybook:coverage
+```
+
+#### 查看与理解报告
+
+- **终端摘要**：按文件展示 Statements（语句）、Branches（分支）、Functions（函数）和 Lines（行）的执行覆盖率，以及未覆盖的行号。
+- **HTML 报告**：用浏览器打开 `packages/ui/coverage/index.html`，点击具体源码文件查看未覆盖位置。
+- **完整文件列表**：当前终端报告可能省略已完全覆盖的文件；完整结果可在 HTML 中查看，例如 `components/input.tsx.html`。
+- **统计边界**：默认统计整个 UI 包源码；Button、ThemeProvider 等也可能被 story 的装饰器间接执行，但这不等于已为它们编写独立行为测试。
+- **遗漏文件**：未执行的实现也进入统计，因此整体数字低于单个 Input 文件是正常的。
+- **正确解读**：覆盖率表示代码是否执行到，不表示断言充分；高覆盖率不能证明组件行为、视觉或无障碍体验完全正确。
+
+根目录 `.gitignore` 已忽略 `coverage/`，UI 包 ESLint 配置也已忽略该目录。报告是本地生成产物，不提交 Git；后续 CI 可按需归档。
+
+#### 验证状态
+
+- 已添加配置、采集命令和生成目录忽略规则。
+- `pnpm --filter @badnpm/ui test-storybook:coverage`：通过，1 个测试文件、13 个测试通过，并成功生成 HTML 报告。
+- 本次整个 UI 包的覆盖率为：语句 `34.06%`、分支 `26.6%`、函数 `40.74%`、行 `35.11%`。这是本次代码和场景的结果，后续会随实现变化。
+- Input 的 HTML 报告中语句、函数、行覆盖率均为 `100%`，分支为 `0/0`，即未统计到可覆盖分支；不能把这个数字理解为所有行为与边界都已验证。
+- 后续补充 Providers 分组后重新采集：3 个测试文件、20 个测试通过。整体语句覆盖率 `80.21%`、分支 `68.8%`、函数 `87.03%`、行 `82.14%`；Providers 行覆盖率为 `81.75%`。前面的数字保留为仅有 Input stories 时的记录，当前结果以最近生成的报告为准。
+- 再次补充 Provider 边界场景、ThemeToggle、Lib 与 Hooks 后：7 个测试文件、35 个测试通过（无障碍策略保持 `error`）。整体语句覆盖率 `92.85%`、分支 `87.15%`、函数 `96.29%`、行 `94.64%`；Providers 行覆盖率 `94.59%`。这是补充 Button 独立 stories 之前的结果，剩余未覆盖分支以最新 HTML 报告为准。
+- 补充 Button 的 6 个独立场景后：8 个测试文件、41 个测试通过，包含无障碍检查；类型检查、Button story 的 ESLint 检查与 Storybook 构建通过。Button 各项覆盖率均为 `100%`；整体语句 `93.4%`、分支 `88.07%`、函数 `98.14%`、行 `95.23%`。
+- 类型检查和本次修改的 Vitest / ESLint 配置检查通过；`coverage/index.html` 已确认被 Git 忽略。
+
+官方参考：[Vitest 覆盖率配置](https://main.vitest.dev/config/coverage)。
 
 ### 在 CI 中自动运行测试（Automate tests in CI）
 

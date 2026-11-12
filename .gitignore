@@ -35,3 +35,6 @@ dist-ssr
 .pnpm-store
 # Storybook build output
 storybook-static
+
+# Generated test coverage reports
+coverage/
