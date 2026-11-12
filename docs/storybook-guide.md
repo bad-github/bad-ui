@@ -738,7 +738,7 @@ pnpm --filter @badnpm/ui build
 
 本节按照 Storybook Testing 引导清单的顺序记录本项目的测试接入过程。已接入的模块记录实际依赖、配置和验证状态；其余模块保留入口，后续逐项补充。
 
-目前已有组件预览、自动文档和 a11y 面板，并已安装 Vitest 插件及浏览器测试依赖、生成测试配置。组件测试运行结果尚未验证，视觉测试、覆盖率报告和 CI 流程尚未接入，也没有 `test-storybook` 命令。上文通用测试章节不能直接当作本仓库已经启用的能力。
+目前已有组件预览、自动文档和 a11y 面板，并已安装 Vitest 插件及浏览器测试依赖、生成测试配置，添加组件测试运行命令。组件测试运行结果尚未确认，视觉测试、覆盖率报告和 CI 流程尚未接入。上文通用测试章节不能直接当作本仓库已经启用的能力。
 
 ### 安装 Vitest 插件（Install Vitest addon）
 
@@ -796,7 +796,7 @@ pnpm exec storybook add @storybook/addon-vitest@10.6.6
   - 增加 `parameters.a11y.test: 'todo'`：无障碍问题作为待处理项展示，不作为阻断测试的门禁。
   - 具体的无障碍规则与失败策略，后续在“运行无障碍测试”模块完善。
 - **`packages/ui/package.json` 与 `pnpm-lock.yaml`**
-  - 分别记录依赖声明和实际解析版本；本次未新增测试 script。
+  - 分别记录依赖声明和实际解析版本；安装向导未新增测试 script，运行命令在下一模块中添加。
 
 #### 当前状态与待验证项
 
@@ -809,11 +809,122 @@ pnpm exec storybook add @storybook/addon-vitest@10.6.6
 
 ### 运行组件测试（Test your components）
 
-- 接入步骤：待补充。
+#### 添加运行命令
+
+在 `packages/ui/package.json` 的 `scripts` 中添加：
+
+```json
+{
+  "test-storybook": "vitest run --project=storybook",
+  "test-storybook:watch": "vitest --project=storybook"
+}
+```
+
+- **`test-storybook`**：运行一次测试后退出，适合手动验证和后续 CI；测试失败时返回非零退出码。
+- **`test-storybook:watch`**：以监听模式运行，组件和 stories 修改后重新执行相关测试。
+- **`--project=storybook`**：选择 `vitest.config.ts` 中名为 `storybook` 的测试项目。
+
+在 `packages/ui` 目录执行：
+
+```sh
+pnpm test-storybook
+```
+
+开发时可改为执行 `pnpm test-storybook:watch`。在仓库根目录执行时，需要加包筛选：
+
+```sh
+pnpm --filter @badnpm/ui test-storybook
+```
+
+#### 测试代码从哪里来
+
+- 上一步生成的 `vitest.config.ts` 已注册 `storybookTest`，它会根据 `.storybook/main.ts` 扫描现有 stories，并将它们转换为组件测试。
+- 现有 `Input.stories.tsx` 中的 Default、Disabled、ReadOnly、Invalid 就是基础测试场景，无需为本阶段重复创建 `.test.tsx` 文件。
+- 在尚未编写 `play` 时，主要验证各场景能否正常渲染；渲染成功不代表禁用、只读等行为已经通过断言验证。下一模块在这些 stories 中补充行为断言。
+- `onChange: fn()` 等配置只提供回调记录能力；需要编写操作和断言，才能验证回调是否按预期触发，具体留到交互测试模块。
+
+#### 在 Storybook 中运行
+
+- 执行 `pnpm storybook` 启动工作台，在 Vitest 插件提供的测试入口中运行测试、查看结果。
+- 单次命令行测试不要求先启动 Storybook 开发服务，也不要求先构建静态站点。
+
+#### 当前状态
+
+- 已添加单次运行和监听模式命令。
+- 实际测试结果尚未确认；运行前需检查上一模块记录的版本兼容性，以及 Chromium 是否安装完成。
 
 ### 编写交互测试（Test functionality with interactions）
 
-- 接入步骤：待补充。
+#### 在 stories 中添加 play
+
+本模块复用已安装的 Vitest 插件，不增加测试依赖，也不新建重复的 `.test.tsx` 文件。测试直接写在 `packages/ui/src/components/Input.stories.tsx` 各个 story 的 `play` 函数中，组件渲染完成后执行。
+
+- **`fn`**：从 `storybook/test` 导入，作为 `onChange`、`onFocus`、`onBlur`、`onKeyDown` 的替身回调，记录调用，供断言检查。
+- **`expect`**：从 `storybook/test` 导入，验证输入值、焦点、禁用状态、可访问描述以及回调调用。
+- **`canvas`**：由 `play` 上下文提供，通过角色和可访问名称定位当前 story 中的输入框，避免查找其他预览中的元素。
+- **`userEvent`**：由 `play` 上下文提供，模拟点击、输入、清空、Enter、Tab 等用户操作。
+- **`step`**：由 `play` 上下文提供，把操作和断言分成带中文名称的步骤，在 Interactions 面板中展示。
+
+例如，Default 中验证聚焦的步骤为：
+
+```tsx
+import { expect, fn } from 'storybook/test';
+
+// 保留现有 meta、args 和 Story 类型定义。
+export const Default: Story = {
+  play: async ({ canvas, userEvent, args, step }) => {
+    const input = canvas.getByRole('textbox', { name: '示例输入框' });
+
+    await step('点击输入框后获得焦点，并触发 onFocus', async () => {
+      await userEvent.click(input);
+      await expect(input).toHaveFocus();
+      await expect(args.onFocus).toHaveBeenCalled();
+    });
+  },
+};
+```
+
+这段代码仅展示聚焦步骤，完整实现见 `Input.stories.tsx`。操作、断言和步骤均使用 `await`，便于依序执行并在面板中追踪失败位置。
+
+#### 本次覆盖的场景
+
+- **Default**
+  - 点击后获得焦点，并触发 `onFocus`。
+  - 输入后值更新，并触发 `onChange`；清空后值为空。
+  - 按 Enter 后，`onKeyDown` 收到 `key: 'Enter'` 的事件。
+  - 按 Tab 后离开输入框，并触发 `onBlur`。
+- **Disabled**
+  - 输入框具有禁用状态，尝试输入后值仍为空，且未获得焦点。
+  - 不触发 `onChange` 和 `onFocus`。
+  - 禁用样式包含 `pointer-events: none`，使用 `type` 的 `skipClick` 选项跳过点击，避免测试工具将不可点击样式当作交互错误。
+- **ReadOnly**
+  - 可以点击聚焦，且触发 `onFocus`。
+  - 输入文字、按 Backspace 后仍保留原值，不触发 `onChange`。
+- **Invalid**
+  - 输入框处于无效状态，错误提示可见，且通过 `aria-describedby` 成为可访问描述。
+  - 仍可输入文字并触发 `onChange`。
+  - 输入后继续保留错误状态：`aria-invalid` 由调用方传入，Input 不负责自动校验或清除错误。
+
+#### 运行与查看结果
+
+在 `packages/ui` 目录执行：
+
+```sh
+pnpm test-storybook
+```
+
+- Vitest 会在执行 stories 时运行新增的 `play`，无需另外增加交互测试命令。
+- 执行 `pnpm storybook` 后，打开具体 story 的 **Interactions** 面板，可查看各步骤、操作和断言。
+- **Actions** 展示回调调用日志；**Interactions** 展示行为断言结果。看到事件日志不等于测试通过。
+- `play` 会自动操作预览，因此输入框可能显示测试结束时的内容；可通过重新挂载 story 重新执行流程。
+
+#### 验证状态
+
+- `pnpm --filter @badnpm/ui typecheck`：通过。
+- 浏览器测试尝试启动时被执行环境阻止监听本地端口，报错 `listen EPERM ::1:23315`；沙箱外运行未获批准，本次未执行到任何测试用例，不能据此认定交互断言通过或失败。
+- 请在本地终端执行上述命令完成浏览器验证。上一模块记录的 Storybook / 插件版本兼容问题仍需对齐。
+
+官方参考：[交互测试](https://storybook.js.org/docs/writing-tests/interaction-testing)。
 
 ### 运行无障碍测试（Run accessibility tests）
 

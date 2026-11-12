@@ -9,7 +9,9 @@
     "typecheck": "tsc --noEmit",
     "build": "rollup -c",
     "storybook": "storybook dev -p 6006 --no-open",
-    "build-storybook": "storybook build"
+    "build-storybook": "storybook build",
+    "test-storybook": "vitest run --project=storybook",
+    "test-storybook:watch": "vitest --project=storybook"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
