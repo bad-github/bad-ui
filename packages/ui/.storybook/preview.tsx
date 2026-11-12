@@ -17,6 +17,7 @@ const preview: Preview = {
   parameters: {
     // 取消 Storybook 的外层居中容器，由 PreviewFrame 统一安排工具区和内容区。
     layout: 'fullscreen',
+
     docs: {
       // Docs 正文单独接入外围主题；示例 iframe 仍保留自己的 ThemeProvider。
       container: ThemedDocsContainer,
@@ -27,8 +28,10 @@ const preview: Preview = {
         height: 240,
       },
     },
+
     // 预览背景跟随 UI 的 body 主题，避免独立背景控件与主题冲突。
     backgrounds: { disable: true },
+
     // 控制属性编辑器的行为，右侧 Controls 面板和 Docs 中的 Controls 表格都会使用。
     controls: {
       // 根据属性名称推断控件类型；具体属性仍可通过 argTypes 显式指定 control。
@@ -38,6 +41,13 @@ const preview: Preview = {
         // 名称以 Date 结尾时使用日期选择器，例如 startDate。
         date: /Date$/i,
       },
+    },
+
+    a11y: {
+      // 'todo' - show a11y violations in the test UI only
+      // 'error' - fail CI on a11y violations
+      // 'off' - skip a11y checks entirely
+      test: 'todo',
     },
   },
 };

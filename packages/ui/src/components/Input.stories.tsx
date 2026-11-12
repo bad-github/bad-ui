@@ -8,7 +8,15 @@ const meta = {
   // 用实际组件生成文档与 Props 信息。
   component: Input,
   // 提供可访问名称、占位文案和回调记录；不传 value，保留自由输入能力。
-  args: { 'aria-label': '示例输入框', placeholder: '请输入内容', disabled: false, onChange: fn() },
+  args: {
+    'aria-label': '示例输入框',
+    placeholder: '请输入内容',
+    disabled: false,
+    onChange: fn(),
+    onFocus: fn(),
+    onBlur: fn(),
+    onKeyDown: fn(),
+  },
   // 输入框默认占满容器，限制展示宽度并适应窄视口。
   decorators: [
     (Story) => (

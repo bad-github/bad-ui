@@ -578,7 +578,7 @@ pnpm build-storybook
 
 本项目将 Storybook 直接集成在 `packages/ui`，包名为 `@badnpm/ui`。`apps/web` 继续作为应用演示入口，Storybook 负责组件独立预览和文档。
 
-### 第一步：安装开发依赖
+### 安装开发依赖
 
 在仓库根目录执行，安装前确认命令：
 
@@ -590,7 +590,7 @@ pnpm --filter @badnpm/ui add -D storybook @storybook/react-vite @storybook/addon
 
 本次使用 Node `24.22.1` 验证；根目录原有 `engines` 下限不代表所有工具组合都已在该下限运行验证。
 
-### 第二步：添加 Storybook 配置
+### 添加 Storybook 配置
 
 ```text
 packages/ui/
@@ -675,7 +675,7 @@ Docs 容器将当前主题写入自身文档的 `data-storybook-docs-theme`，�
 
 刷新 Docs 时，Storybook 会先显示 `.sb-preparing-docs` 中的预览卡片和 Props 表格骨架。`preview-head.html` 对这些静态节点添加暗色覆盖，包括预览背景、表格单元格、边框、图标和文字占位块。选择器限定在初始 loading 遮罩中，加载完成后的组件及文档样式不受影响。
 
-### 第三步：编写组件示例
+### 编写组件示例
 
 采用 CSF 3，通过 `Meta`、`StoryObj` 与 `satisfies` 检查类型，从 `@storybook/react-vite` 导入类型。story 文件使用 PascalCase，与现有小写组件文件相邻；不要从组件库入口导出 stories。
 
@@ -685,7 +685,7 @@ Docs 容器将当前主题写入自身文档的 `data-storybook-docs-theme`，�
 
 当前仅保留 Input 示例，集中设计输入框；Button 和 ThemeToggle 的组件实现仍保留，暂不提供对应 stories。Input 有可访问名称，错误提示通过 `aria-describedby` 关联，`onChange` 使用 `storybook/test` 的 `fn()` 记录。
 
-### 第四步：隔离发布构建与检查范围
+### 隔离发布构建与检查范围
 
 stories 放在 `src` 后，需要同时修改两处发布构建配置：
 
@@ -694,7 +694,7 @@ stories 放在 `src` 后，需要同时修改两处发布构建配置：
 
 普通 `tsconfig.json` 保留 stories 和 `.storybook` 的类型检查，排除生成的 `storybook-static`。ESLint 和 Git 同样忽略静态输出目录。`package.json` 的 `files` 保持只发布 `dist`。
 
-### 第五步：启动和构建
+### 启动和构建
 
 UI 包新增两个 scripts：
 
@@ -723,7 +723,7 @@ pnpm --filter @badnpm/ui build-storybook
 
 Turbo 已登记 `storybook`（常驻、禁用缓存）与 `build-storybook`（缓存输出 `storybook-static/**`），也可运行 `pnpm exec turbo run storybook --filter=@badnpm/ui`。
 
-### 第六步：验证基础集成
+### 验证基础集成
 
 ```bash
 pnpm --filter @badnpm/ui typecheck
@@ -734,10 +734,104 @@ pnpm --filter @badnpm/ui build
 
 检查静态预览中的字体和资源能通过 HTTP 正常加载，发布包中没有 story 的 JS 或声明文件。Vite 构建可能提示依赖中的 `use client` 指令被忽略；Storybook 是浏览器预览，不以此替代组件库发布构建。
 
-### 后续阶段：测试与发布
+## 在 bad-ui 项目中接入测试
 
-目前已接入组件预览、自动文档和 a11y 面板。尚未安装 Vitest addon、浏览器测试依赖或视觉回归服务，也没有 `test-storybook` 命令；上文通用测试章节不能直接当作本仓库已经启用的能力。
+本节按照 Storybook Testing 引导清单的顺序记录本项目的测试接入过程。已接入的模块记录实际依赖、配置和验证状态；其余模块保留入口，后续逐项补充。
 
-下一阶段确认后再安装 `@storybook/addon-vitest`、`vitest`、`@vitest/browser-playwright` 和 `playwright`，配置浏览器测试项目与 preview annotations，添加点击、输入、主题切换等有意义的 play 断言，再接入 CI。a11y 面板检查不等于 CI 门禁。
+目前已有组件预览、自动文档和 a11y 面板，并已安装 Vitest 插件及浏览器测试依赖、生成测试配置。组件测试运行结果尚未验证，视觉测试、覆盖率报告和 CI 流程尚未接入，也没有 `test-storybook` 命令。上文通用测试章节不能直接当作本仓库已经启用的能力。
 
-最后按需要选择 Chromatic 或自建视觉回归，并部署静态文档。本阶段不接入外部服务，也不发布 npm 包。
+### 安装 Vitest 插件（Install Vitest addon）
+
+#### 执行安装向导
+
+在 `packages/ui` 目录执行：
+
+```sh
+pnpm exec storybook add @storybook/addon-vitest@10.6.6
+```
+
+- **`pnpm exec`**：使用当前项目安装的 Storybook CLI 执行命令。
+- **`storybook add`**：安装并注册插件，同时执行插件的接入向导；不仅仅是添加 npm 依赖。
+- **`@storybook/addon-vitest@10.6.6`**：请求安装指定版本的官方 Vitest 插件。实际结果需核对 `package.json` 和 `pnpm-lock.yaml`，不能仅凭命令认定安装版本。
+- **执行目录**：选择 UI 包目录，让向导识别该包的 `.storybook`，将依赖和配置写入 UI 包。
+
+向导会检查现有测试环境，按需安装 Vitest、浏览器驱动和覆盖率支持，并生成配置。如果提示安装 Playwright 浏览器，选择 **Yes**；浏览器二进制与 npm 中的 `playwright` 包是不同的安装内容。仅存在 npm 依赖，不代表 Chromium 已下载成功。
+
+#### 新增依赖及作用
+
+以下为本次安装后 `pnpm-lock.yaml` 中记录的实际版本，均对应 UI 包的开发依赖：
+
+- **`@storybook/addon-vitest`：`10.6.7`**
+  - 将 Storybook 与 Vitest 连接，在 Storybook 中提供测试运行入口和结果展示。
+  - 提供 `storybookTest` Vite 插件，将配置中扫描到的 stories 转换为组件测试。
+- **`vitest`：`5.1.0`**
+  - 负责发现、调度和运行测试，收集断言结果，并支持命令行及监听模式。
+- **`@vitest/browser-playwright`：`5.1.0`**
+  - 为 Vitest Browser Mode 提供 Playwright 适配，让测试运行在真实浏览器中。
+- **`playwright`：`1.65.0`**
+  - 启动和控制测试浏览器；本项目生成的配置使用 Chromium。
+  - **npm 包位置**：由 pnpm 安装在项目中，通过 `packages/ui/node_modules/playwright` 访问；该入口通常是指向 pnpm 管理位置的符号链接。
+  - **浏览器本体位置**：默认下载到电脑的用户缓存目录，不在项目的 `node_modules` 中。macOS 通常为 `~/Library/Caches/ms-playwright`，可供多个项目复用。
+  - **自定义位置**：设置 `PLAYWRIGHT_BROWSERS_PATH` 可更改浏览器存放位置；安装与运行测试时应使用一致的配置。
+- **`@vitest/coverage-v8`：`5.1.0`**
+  - 为 Vitest 提供基于 V8 的代码覆盖率采集支持。
+  - 安装依赖不等于已生成报告；报告命令及配置留到“生成测试覆盖率报告”模块记录。
+
+这些依赖服务于组件库开发与测试，不要求 npm 包使用者手动安装。
+本次向导将 Vitest、浏览器适配、覆盖率和 Playwright 的版本声明写为 `latest`；上述具体版本来自 lockfile，并非该声明永远解析出的版本。
+
+#### 新增及修改的配置
+
+- **`packages/ui/.storybook/main.ts`**
+  - `addons` 中增加 `@storybook/addon-vitest`，保留 Docs 和 a11y 插件，使 Storybook 加载测试插件。
+- **`packages/ui/vitest.config.ts`**
+  - 通过 `defineConfig` 声明测试配置，使用 `test.projects` 定义名为 `storybook` 的测试项目。
+  - `storybookTest({ configDir: ... })` 指向 UI 包的 `.storybook`，根据现有 stories 和预览配置建立测试环境。
+  - `browser.enabled: true` 启用浏览器模式，`provider: playwright({})` 指定浏览器驱动。
+  - `instances: [{ browser: 'chromium' }]` 选择 Chromium，`headless: true` 表示运行时不弹出浏览器窗口。
+  - 本次未生成独立的 `.storybook/vitest.setup.ts`，当前配置也未引用该文件，无需照搬前文通用示例额外创建。
+- **`packages/ui/vitest.shims.d.ts`**
+  - 引用 `@vitest/browser-playwright` 的类型声明，供 TypeScript 识别浏览器测试相关类型；它不执行测试。
+- **`packages/ui/.storybook/preview.tsx`**
+  - 增加 `parameters.a11y.test: 'todo'`：无障碍问题作为待处理项展示，不作为阻断测试的门禁。
+  - 具体的无障碍规则与失败策略，后续在“运行无障碍测试”模块完善。
+- **`packages/ui/package.json` 与 `pnpm-lock.yaml`**
+  - 分别记录依赖声明和实际解析版本；本次未新增测试 script。
+
+#### 当前状态与待验证项
+
+- **已确认**：依赖已安装，插件已注册，Vitest 浏览器配置已生成。
+- **版本差异**：虽然本节记录的命令指定 `10.6.6`，实际插件为 `10.6.7`，其 `peerDependencies.storybook` 要求 `^10.6.7`；当前 lockfile 中的 Storybook 为 `10.6.6`，不满足此要求。运行测试前需对齐兼容版本，本文暂不将其标记为验证通过。
+- **浏览器状态**：尚未验证 Chromium 二进制是否可用，不能只依据 `playwright` 依赖判断。
+- **下一模块**：对齐版本后，运行现有 stories 的组件测试，记录执行命令和实际结果。后续再逐项补充交互、无障碍、视觉、覆盖率和 CI。
+
+官方参考：[Vitest 插件接入说明](https://storybook.js.org/docs/writing-tests/integrations/vitest-addon/index)。
+
+### 运行组件测试（Test your components）
+
+- 接入步骤：待补充。
+
+### 编写交互测试（Test functionality with interactions）
+
+- 接入步骤：待补充。
+
+### 运行无障碍测试（Run accessibility tests）
+
+- 接入步骤：待补充。
+- 当前已有 a11y 面板，自动化测试与 CI 门禁配置待接入。
+
+### 安装视觉测试插件（Install Visual Tests addon）
+
+- 接入步骤：待补充。
+
+### 运行视觉测试（Run visual tests）
+
+- 接入步骤：待补充。
+
+### 生成测试覆盖率报告（Generate a coverage report）
+
+- 接入步骤：待补充。
+
+### 在 CI 中自动运行测试（Automate tests in CI）
+
+- 接入步骤：待补充。

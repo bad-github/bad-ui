@@ -11,7 +11,11 @@ const config: StorybookConfig = {
   // 相对于 .storybook 目录查找独立文档和源码旁的 TS/TSX 示例。
   stories: ['../src/**/*.mdx', '../src/**/*.stories.@(ts|tsx)'],
   // Docs 生成组件文档；a11y 提供浏览器中的无障碍检查面板。
-  addons: ['@storybook/addon-docs', '@storybook/addon-a11y'],
+  addons: [
+    '@storybook/addon-docs',
+    '@storybook/addon-a11y',
+    '@storybook/addon-vitest'
+  ],
   // 仅注入共享存储键对象，主题恢复逻辑保留在 preview-head.html 中。
   // 必须放在 head 前面，使 HTML 脚本执行时已经能读取到这个对象。
   previewHead(head) {
