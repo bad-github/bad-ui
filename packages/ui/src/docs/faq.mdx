@@ -1,0 +1,137 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Development/FAQ" />
+
+# 常见问题
+
+本页整理 `@badnpm/ui` 的接入与研发问题。框架接入见 **Development → Getting Started**，设计基础见 **Design**，具体组件 API 见对应的 Docs。
+
+## 安装与样式
+
+### 需要安装 Tailwind 或 shadcn 吗？
+
+- 使用包内组件不需要额外安装，组件库提供预编译 CSS。
+- 应用自己新增的 Tailwind 工具类仍需要应用自己的构建配置。
+- 应用需要提供兼容的 React 与 React DOM，当前组件库要求 19.x。
+
+### 为什么组件没有样式？
+
+JS 入口不会自动加载 CSS，请在应用入口引入：
+
+```tsx
+import '@badnpm/ui/styles/index.css';
+```
+
+- Vite 应用放在 `src/main.tsx`，Next.js App Router 放在根 `layout.tsx`。
+- 检查资源请求是否成功，以及是否被应用其他样式覆盖。
+- `styles/custom.css` 和字体入口是可选项，不能代替默认组件样式。
+
+### 页面背景或字体为什么没有跟着变化？
+
+- `styles/index.css` 提供组件样式与变量，不自动启用所有可选页面样式。
+- 页面背景、文字和滚动条可通过 `styles/custom.css` 接入。
+- Geist 字体通过 `styles/font/geist.css` 接入；保留应用自己的字体时无需引入。
+- 中文等缺失字形可能由后备字体渲染，不能只凭 CSS 声明判断实际字体。
+
+## 主题与偏好
+
+### theme 为什么有时是 dark，有时是 blue？
+
+- `useTheme().theme` 是深浅模式：`light`、`dark`、`system`。
+- `usePreference().theme` 是主题配色：`neutral`、`blue` 等。
+- `baseColor` 控制基础色，`radius` 控制圆角，详见 **Design → Preferences**。
+
+### 修改默认主题后，为什么页面仍恢复之前的颜色？
+
+- Provider 优先恢复已保存的有效偏好，默认配置只是没有有效保存值时的回退。
+- 检查当前 `storageKey` 对应的 localStorage 项；主题默认键为 `bad-ui:theme`，偏好默认键为 `bad-ui:preference`。
+- 需要动态修改时调用对应 Hook 的 setter，不依赖修改默认值来覆盖用户选择。
+- 排查时只处理相关键，不必清空整个站点存储。
+
+### Hook 提示必须在 Provider 中调用，怎么办？
+
+- `useTheme` 的消费组件必须位于 ThemeProvider 内。
+- `usePreference` 的消费组件必须位于 PreferenceProvider 内。
+- Next.js 中消费这些上下文的代码应位于客户端组件边界。
+- Storybook 的 Manager 与 Preview iframe 不共享 React Context，外围插件不能直接读取预览内的 Provider。
+
+## 组件与框架接入
+
+### Input 为什么无法编辑？
+
+- 检查是否传入了 `disabled` 或 `readOnly`。
+- 传入 `value` 时是受控输入，需要在 `onChange` 中同步更新状态。
+- 只需要初始值时使用 `defaultValue`，不要与 `value` 混用。
+- `onChange: fn()` 只记录调用，不会自动更新业务状态。
+
+### Input 为什么需要标签，placeholder 不够吗？
+
+- 标签说明输入用途，placeholder 是空值时的辅助提示，不能代替标签。
+- 优先使用 `label` 的 `htmlFor` 关联 Input 的 `id`。
+- 没有可见标签时可提供 `aria-label`。
+- 无障碍检查针对最终渲染结果；组件实现和 story 使用方式都可能造成违规。
+
+### Next.js 中需要把整个页面改为 use client 吗？
+
+- 不需要。把状态、事件处理和上下文消费放在较小的客户端组件中。
+- 页面和根布局可以保留服务端组件，通过子组件承载交互。
+- 主题首屏恢复需要结合应用处理；Storybook 的 head 初始化脚本不能直接视为业务应用方案。
+- 具体文件组织见 **Getting Started → Using with Next.js**。
+
+## Storybook 与测试
+
+### 为什么输入框会自动填入内容？
+
+- story 的 `play` 在渲染后自动执行，模拟点击、输入、清空等操作。
+- 预览会保留测试结束时的状态，这是交互示例的执行结果。
+- 修改 Controls 后，原来基于默认参数编写的断言不一定仍适用。
+
+### Actions、Interactions、Accessibility 有什么区别？
+
+- **Actions**：查看回调调用及参数，日志存在不代表测试通过。
+- **Interactions**：查看 `play` 中的操作、步骤和断言结果。
+- **Accessibility**：查看无障碍规则的违规、通过及需要人工确认的结果。
+- 当前配置为 `a11y.test: 'error'`，自动检查发现违规时会让组件测试失败。
+
+### 为什么终端测试通过，侧边栏却还是 Not run？
+
+- 终端与已打开的 Storybook 工作台有各自的运行结果，不会自动同步。
+- 在工作台的测试控件中运行一次，才能查看当前会话的批量测试状态。
+- Not run 或灰色入口不一定表示插件未安装。
+
+### 测试提示找不到 Chromium，怎么办？
+
+在 UI 包目录执行：
+
+```sh
+pnpm exec playwright install chromium
+```
+
+- Playwright npm 包与浏览器本体分开安装，日常使用的 Chrome 不等于测试所需的 Chromium。
+- macOS 默认浏览器缓存位于 `~/Library/Caches/ms-playwright`；自定义路径时安装和运行应保持一致。
+- Linux CI 还需系统依赖，工作流已使用 `playwright install --with-deps chromium`。
+
+### 构建成功或覆盖率 100%，是否表示没有问题？
+
+- Storybook 构建只证明文档和示例可以打包，不代替运行测试。
+- 覆盖率表示源码被执行过，不代表断言充分，也不证明视觉和业务逻辑全部正确。
+- 自动无障碍扫描仍需配合键盘、缩放和屏幕阅读器检查。
+- 视觉回归目前暂缓，样式变化仍需人工检查。
+
+## 本地检查命令
+
+以下命令在 `packages/ui` 目录运行：
+
+```sh
+pnpm typecheck
+pnpm lint
+pnpm test-storybook
+pnpm test-storybook:coverage
+pnpm build-storybook
+pnpm build
+```
+
+- 单次测试用 `test-storybook`；开发监听用 `test-storybook:watch`。
+- 覆盖率报告位于 `coverage/index.html`。
+- 在仓库根目录执行时，使用 `pnpm --filter @badnpm/ui` 加对应脚本名。
+- GitHub Actions 执行方式、失败排查和覆盖率附件说明见仓库 `docs/storybook-guide.md`。

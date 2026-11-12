@@ -15,6 +15,19 @@ const preview: Preview = {
   decorators: [withTheme],
   // 控制预览和插件行为，不作为组件 props 传入。
   parameters: {
+    options: {
+      storySort: {
+        // 仅固定前两个顶层分组，其余分组与子目录按英文名称排序。
+        order: ['Development', 'Design', '*'],
+        method: 'alphabetical',
+        // 将单个 story 的显示名称也纳入字母排序，例如 Controlled 排在 Default 前。
+        // 为 false 时，不按 story 名称排序，同一组件内通常保留源码导出顺序。
+        includeNames: true,
+        // 使用英文区域的字母比较规则，避免排序结果随运行机器的默认语言变化。
+        // 只影响名称比较，不会将 Storybook 界面或文档内容切换为英文。
+        locales: 'en',
+      },
+    },
     // 取消 Storybook 的外层居中容器，由 PreviewFrame 统一安排工具区和内容区。
     layout: 'fullscreen',
 

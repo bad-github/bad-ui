@@ -1,0 +1,61 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Design/Styles" />
+
+# 样式
+
+`@badnpm/ui` 使用 Tailwind CSS v4、CSS 自定义属性与语义化设计令牌。组件通过源码中的工具类定义外观，npm 包提供预编译 CSS，使用方无需为内置样式额外配置 Tailwind。
+
+## 样式入口
+
+- **`@badnpm/ui/styles/index.css`**：必需入口，包含 Tailwind 重置、组件工具类、动画扩展、Base UI 通用样式、主题和基础色变量。
+- **`@badnpm/ui/styles/custom.css`**：可选入口，让 body 的背景色、文字色跟随主题，并提供滚动条样式；需与默认样式配合使用。
+- **`@badnpm/ui/styles/font/geist.css`**：可选字体入口，详见 **Design → Typography**。
+- **`@badnpm/ui/globals.css`**：默认样式的兼容入口，与 `styles/index.css` 二选一即可。
+
+```tsx
+// 在应用入口统一引入；Next.js App Router 中放在根布局。
+import '@badnpm/ui/styles/index.css';
+import '@badnpm/ui/styles/custom.css'; // 可选
+```
+
+JS 入口不会自动导入 CSS。默认样式含全局重置，接入已有应用时需检查样式顺序及覆盖关系。
+
+## 语义化颜色
+
+- **页面**：`--background` / `--foreground`。
+- **主要操作**：`--primary` / `--primary-foreground`。
+- **次要操作**：`--secondary` / `--secondary-foreground`。
+- **弱化内容**：`--muted` / `--muted-foreground`。
+- **错误与危险操作**：`--destructive`。
+- **边框与焦点**：`--border`、`--input`、`--ring`。
+- **其他区域**：另有 Card、Popover、Sidebar 和图表色变量；定义令牌不代表对应组件均已实现。
+
+CSS 可以直接消费变量，不依赖应用安装 Tailwind：
+
+```css
+.example-panel {
+  background: var(--card);
+  color: var(--card-foreground);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem;
+}
+```
+
+项目源码中的 `bg-primary`、`text-muted-foreground` 等类通过 `@theme inline` 映射到这些变量。应用新增的工具类仍需由应用自己的 Tailwind 构建生成。
+
+## 圆角、状态与动画
+
+- 基础圆角 `--radius` 默认为 `0.625rem`，可由 PreferenceProvider 更新。
+- `rounded-sm` / `md` / `lg` 分别映射到基础圆角的 `0.6` / `0.8` / `1` 倍，其他级别在源码中继续派生。
+- 组件使用 `disabled`、`aria-invalid`、`focus-visible` 等语义或状态选择器表达禁用、错误与键盘焦点。
+- `tw-animate-css`、shadcn Tailwind 扩展和 `base-ui.css` 提供动画基础；具体动画需由组件或类名启用。
+- 现有 ThemeToggle 与折叠动画包含减少动态效果的处理；新增动画仍需检查 `prefers-reduced-motion`，不能假定所有动画都自动适配。
+
+## 源码与构建
+
+- 入口与令牌映射：`src/styles/index.css`、`src/styles/globals.css`。
+- 页面与滚动条：`src/styles/custom.css`、`src/styles/scrollbar.css`。当前滚动条主要使用 WebKit 伪元素，其他浏览器可能保留系统外观。
+- 发布：Rollup / PostCSS 编译样式并复制字体资源，输出到 `dist/styles`。
+- Storybook：Vite 直接加载源码样式；预览正常不等于发布包资源一定正常，发布前仍需验证构建产物。

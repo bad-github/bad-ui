@@ -1,0 +1,176 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Development/Getting Started/Using with Next.js" />
+
+# 在 Next.js 中使用
+
+本指南面向已有的 **Next.js App Router + TypeScript** 应用，介绍 npm 包安装、全局样式、客户端组件和主题接入。
+
+- **安装依赖**：在应用中安装 `@badnpm/ui`。
+- **引入样式**：在根布局统一加载预编译 CSS。
+- **使用组件**：为需要状态和事件的代码设置客户端边界。
+- **启用主题（可选）**：通过客户端 Providers 包装页面内容。
+
+## 环境要求
+
+- **Next.js**：使用支持 React 19 的版本，本文示例采用 App Router。
+- **React / React DOM**：均为 `19.x`，与所用 Next.js 版本要求兼容，二者版本保持一致。
+- **Node.js**：本项目环境参考为 `>=20.19.0`，同时必须满足所用 Next.js 版本的要求。
+- **pnpm**：使用 pnpm 时，本项目参考版本为 `11.25.0`；也可以使用 npm。
+
+## 安装组件库
+
+在 Next.js 应用目录选择一种包管理器执行：
+
+**npm**
+
+```sh
+npm install @badnpm/ui
+```
+
+**pnpm**
+
+```sh
+pnpm add @badnpm/ui
+```
+
+- Next.js 应用通常已安装 React 与 React DOM，无需重复安装。
+- 如果现有应用仍使用 React 18，应先按 Next.js 对应版本的升级说明处理依赖兼容性。
+- 组件库已提供编译后的模块、CSS 和类型声明，使用内置样式无需安装 Tailwind，也无需为了扫描包源码而额外配置 Tailwind。
+
+## 引入全局样式
+
+在 `app/layout.tsx` 中引入样式，保留现有根布局内容：
+
+```tsx
+import type { ReactNode } from 'react';
+import '@badnpm/ui/styles/index.css';
+// 可选：让 body 配色和滚动条跟随主题。
+import '@badnpm/ui/styles/custom.css';
+// 可选：使用包内 Geist 字体。
+import '@badnpm/ui/styles/font/geist.css';
+
+export default function RootLayout({ children }: { children: ReactNode }) {
+  return (
+    <html lang="zh-CN">
+      <body>{children}</body>
+    </html>
+  );
+}
+```
+
+- **必需**：`styles/index.css`，JS 入口不自动加载组件样式。
+- **可选**：`styles/custom.css` 与 `styles/font/geist.css`，按应用需求选择。
+- **已有样式**：默认 CSS 包含 Tailwind 重置，应检查与应用现有全局样式的顺序和覆盖关系。
+- **已有字体**：若应用通过 `next/font` 管理字体，可省略 Geist CSS，避免重复设置默认字体。
+- **目录差异**：项目使用 `src/app` 时，上述文件对应为 `src/app/layout.tsx`。
+
+## 使用组件
+
+新建 `app/components/name-form.tsx`：
+
+```tsx
+'use client';
+
+import { useState } from 'react';
+import { Button, Input } from '@badnpm/ui';
+
+export function NameForm() {
+  const [name, setName] = useState('');
+  const [message, setMessage] = useState('');
+
+  return (
+    <form
+      style={{ display: 'flex', flexDirection: 'column', gap: 12 }}
+      onSubmit={(event) => {
+        event.preventDefault();
+        setMessage(`你好，${name}`);
+      }}
+    >
+      <label htmlFor="name">姓名</label>
+      <Input
+        id="name"
+        name="name"
+        required
+        value={name}
+        onChange={(event) => setName(event.currentTarget.value)}
+      />
+      <Button type="submit">确认</Button>
+      <p role="status">{message}</p>
+    </form>
+  );
+}
+```
+
+在 `app/page.tsx` 中渲染：
+
+```tsx
+import { NameForm } from './components/name-form';
+
+export default function Page() {
+  return (
+    <main style={{ maxWidth: 360, margin: '48px auto', padding: 16 }}>
+      <h1>开始使用 @badnpm/ui</h1>
+      <NameForm />
+    </main>
+  );
+}
+```
+
+- **客户端边界**：`NameForm` 使用状态和事件，文件顶部声明 `'use client'`。
+- **页面边界**：`page.tsx` 可以保持服务端组件，通过子组件承载交互。
+- **事件处理**：普通 `onChange`、`onClick` 等事件函数在客户端组件内定义，避免从服务端组件跨边界传入。
+- **主题依赖**：单独使用 Button、Input 不需要 Provider。
+
+## 启用主题切换（可选）
+
+新建 `app/providers.tsx`，集中提供客户端上下文：
+
+```tsx
+'use client';
+
+import type { ReactNode } from 'react';
+import { ThemeProvider, ThemeToggle } from '@badnpm/ui';
+
+export function Providers({ children }: { children: ReactNode }) {
+  return (
+    <ThemeProvider defaultTheme="system">
+      <ThemeToggle />
+      {children}
+    </ThemeProvider>
+  );
+}
+```
+
+然后在根布局中引入 Providers；前面的全局 CSS 导入继续保留：
+
+```tsx
+import type { ReactNode } from 'react';
+import { Providers } from './providers';
+import '@badnpm/ui/styles/index.css';
+import '@badnpm/ui/styles/custom.css';
+
+export default function RootLayout({ children }: { children: ReactNode }) {
+  return (
+    <html lang="zh-CN">
+      <body>
+        <Providers>{children}</Providers>
+      </body>
+    </html>
+  );
+}
+```
+
+- **上下文**：`useTheme` 和 `usePreference` 应在客户端组件及对应 Provider 内调用。
+- **渲染范围**：通过 `children` 传入 Providers 的页面内容仍可保留服务端组件边界，不必把整个根布局改成客户端组件。
+- **恢复偏好**：ThemeProvider 在客户端就绪后恢复保存的主题并更新根元素；已保存的有效选择优先于默认值。
+- **首屏差异**：这些代码未提供阻塞式主题首帧脚本，不保证服务端首屏与恢复后的主题完全一致。不要直接照搬 Storybook 专用的 `preview-head.html` 到业务应用。
+
+## 验证接入
+
+- 执行应用的 `npm run dev` 或 `pnpm dev`，确认输入和提交更新页面提示。
+- 启用主题后检查切换与刷新恢复，以及浏览器 Console 是否有水合错误。
+- 执行应用自身的构建命令，确认生产构建、样式和字体加载正常。
+- 本仓库当前演示应用使用 Vite，以上 Next.js 示例为接入参考，尚未在独立 Next.js 消费应用中验证。
+
+参考：[Next.js 服务端与客户端组件](https://nextjs.org/docs/app/getting-started/server-and-client-components)、[Next.js 样式说明](https://nextjs.org/docs/app/getting-started/css)。

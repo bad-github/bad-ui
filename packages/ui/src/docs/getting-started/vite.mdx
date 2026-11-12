@@ -1,10 +1,10 @@
 import { Meta } from '@storybook/addon-docs/blocks';
 
-<Meta title="Documentation/Getting Started" />
+<Meta title="Development/Getting Started/Using with Vite" />
 
-# 快速开始
+# 在 Vite 中使用
 
-在已有的 React 应用中接入 `@badnpm/ui`，只需完成以下步骤：
+在已有的 Vite + React + TypeScript 应用中接入 `@badnpm/ui`：
 
 - **安装依赖**：添加组件库，确认 React 版本。
 - **引入样式**：加载组件样式，按需选择页面配色和字体。
@@ -18,7 +18,7 @@ import { Meta } from '@storybook/addon-docs/blocks';
 - **Node.js**：建议使用 `>=20.19.0`，与本项目声明的版本范围一致。
 - **pnpm**：使用 pnpm 时，建议使用本项目指定的 `11.25.0`。
 - **React / React DOM**：均为 `19.x`，二者版本应保持一致。
-- **构建工具**：支持处理 CSS 导入；下文示例使用 TypeScript 和 TSX。
+- **构建工具**：Vite，已配置 React 与 TypeScript；Node.js 还需满足所用 Vite 版本的要求。
 
 **版本说明**
 
@@ -55,7 +55,7 @@ npm install react@^19 react-dom@^19
 
 ### 必需：组件样式
 
-在应用入口统一引入一次：
+在 `src/main.tsx` 中统一引入一次：
 
 ```tsx
 import '@badnpm/ui/styles/index.css';
@@ -103,7 +103,7 @@ export function App() {
 
 ## 启用主题切换（可选）
 
-在应用根部挂载 `ThemeProvider`，并在其内部使用 `ThemeToggle`：
+在 `src/main.tsx` 的应用根部挂载 `ThemeProvider`，并在其内部使用 `ThemeToggle`：
 
 ```tsx
 import { createRoot } from 'react-dom/client';
@@ -141,6 +141,8 @@ declare module '*.css' {}
 ```
 
 ## 下一步
+
+在应用目录执行 `npm run dev` 或 `pnpm dev`，打开终端给出的 Vite 地址。确认输入框可编辑、按钮样式正常，启用主题后可切换深浅模式。
 
 打开侧边栏 **Components → Input**，继续探索：
 

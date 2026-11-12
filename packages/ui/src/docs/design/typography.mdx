@@ -1,0 +1,58 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Design/Typography" />
+
+# 字体与排版
+
+项目可选使用 **Geist Variable** 无衬线可变字体，通过 Fontsource 提供字体资源。组件库将字体 CSS 与默认组件样式拆开，应用可以保留自己的字体方案。
+
+## 加载字体
+
+```tsx
+import '@badnpm/ui/styles/index.css';
+import '@badnpm/ui/styles/font/geist.css';
+```
+
+- 字体入口设置 `--font-sans: 'Geist Variable', sans-serif` 和 `--default-font-family`。
+- 不引入可选入口时，由 Tailwind 默认字体栈或应用自己的样式决定字体。
+- 使用 npm 包时无需再单独安装 `@fontsource-variable/geist`；字体文件随构建产物提供。
+- 字体 CSS 中的资源采用相对路径，部署时需保留输出目录结构，避免字体文件 404。
+
+## 当前排版约定
+
+- **标题**：`--font-heading` 引用 `--font-sans`，目前没有单独的标题字体。
+- **按钮**：当前使用 `text-sm` 与 `font-medium`。
+- **输入框**：当前使用 `text-base`，在 Tailwind `md` 断点及以上使用 `text-sm`。
+- **辅助说明**：示例常用 `text-sm` 与弱化文字色，仍需验证对比度和可读性。
+- **代码与等宽文本**：未随包提供 Geist Mono；`font-mono` 使用当前 Tailwind 或应用配置的等宽字体栈。
+- **中文内容**：不假定 Geist 覆盖中文字形，缺失字形由系统或应用配置的后备字体渲染。
+
+这些是当前组件实现，不是已经覆盖所有产品页面的完整排版规格。Storybook Docs 还会使用自身的排版样式，文档标题外观不能直接当作组件库标题规格。
+
+## 使用应用自己的字体
+
+省略 Geist 入口后，可在默认样式之后加载自己的 CSS：
+
+```css
+:root {
+  --font-sans: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --default-font-family: var(--font-sans);
+}
+
+body {
+  font-family: var(--font-sans);
+}
+```
+
+- Next.js 使用 `next/font` 时，也可将其生成的字体变量接入 `--font-sans`，避免重复加载同一字体。
+- 应检查 CSS 加载顺序和层叠优先级，不能假定所有框架的全局字体设置都会自动覆盖组件令牌。
+- 字号和行高优先使用相对单位，保证浏览器放大后文本仍能阅读。
+
+## 验证重点
+
+- 检查 Network 中的字体加载状态和页面实际使用的字体，而不是仅确认 CSS 已导入。
+- 同时查看中文、英文、数字及混排，检查后备字体的基线和行高。
+- 以 200% 缩放检查按钮文字、输入内容和提示是否截断或重叠。
+- 截图测试应等待字体就绪，避免后备字体与目标字体切换导致无意义差异。
+
+源码入口为 `src/styles/font/geist.css`，字体令牌映射位于 `src/styles/globals.css`。参考 [Fontsource 字体安装](https://fontsource.org/docs/getting-started/install)。

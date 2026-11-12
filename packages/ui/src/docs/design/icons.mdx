@@ -1,0 +1,63 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Design/Icons" />
+
+# 图标
+
+组件库使用 **Lucide React** 的 SVG 图标。目前 ThemeToggle 使用 MoonIcon / SunIcon，Button 示例使用 PlusIcon。图标通过具名导入使用，没有自建的统一 Icon 包装组件。
+
+## 在应用中使用
+
+如果应用自身直接导入 Lucide 图标，应将它声明为应用依赖，不依赖 pnpm 下组件库的传递依赖可见性：
+
+```sh
+npm install lucide-react
+```
+
+或使用 `pnpm add lucide-react`。仅使用组件库已有的 ThemeToggle 时，无需额外手动安装其内部图标依赖。
+
+```tsx
+import { PlusIcon } from 'lucide-react';
+import { Button } from '@badnpm/ui';
+
+<Button type="button">
+  <PlusIcon data-icon="inline-start" aria-hidden="true" />
+  添加项目
+</Button>
+```
+
+## 尺寸、颜色与布局
+
+- **独立图标**：可以通过 `size`、`color`、`strokeWidth` 调整，默认颜色跟随 `currentColor`。
+- **按钮内图标**：优先由 Button 内置规则管理尺寸，不额外叠加任意宽高类。
+- **图标位置**：`data-icon="inline-start"` / `inline-end` 为按钮中的起始 / 末尾图标提供布局标记。
+- **语义颜色**：让图标继承文字或语义令牌颜色，随深浅主题变化，避免固定成只适合单一背景的颜色。
+- **一致性**：同一界面尽量使用同类线性图标和一致的描边粗细，不用字符或 emoji 代替功能图标。
+
+```tsx
+// 独立图标的尺寸由使用方设置。
+<PlusIcon size={20} strokeWidth={2} aria-hidden="true" />
+```
+
+## 可访问名称
+
+纯图标按钮必须提供用途名称：
+
+```tsx
+<Button type="button" size="icon" aria-label="添加项目">
+  <PlusIcon aria-hidden="true" />
+</Button>
+```
+
+- **有可见文字**：按钮名称优先来自文字，装饰性图标使用 `aria-hidden="true"` 避免重复播报。
+- **只有图标**：在按钮上提供 `aria-label` 或隐藏文字，描述操作，而不是只写图标名称。
+- **状态变化**：名称应符合动作目标。ThemeToggle 在浅色时描述“切换到深色主题”，在深色时描述相反目标。
+- **提示文字**：`title` 可补充悬停提示，但不应作为唯一的使用指导。
+
+## 图标体系的边界
+
+- Lucide 用于组件库功能图标；Storybook 外围界面有自己的图标体系。
+- 左上角保留的 Storybook 书签标识属于文档站品牌，不是 Lucide 图标。
+- 图标是否能辨认、点击区域是否足够、焦点是否清楚，需要与按钮一起检查；自动无障碍检查不能替代实际理解测试。
+
+查看 **Components → Button → Icon Buttons** 和 **Components → ThemeToggle** 的示例。完整图标目录与 API 以 [Lucide React 官方文档](https://lucide.dev/guide/react/)为准。

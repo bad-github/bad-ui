@@ -1,0 +1,104 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+import { BASE_COLORS, COLOR_THEMES, RADIUS_OPTIONS } from '../../lib/preference';
+
+<Meta title="Design/Preferences" />
+
+# 外观偏好
+
+PreferenceProvider 统一管理 `baseColor`、`theme`、`radius`，用于组合应用外观；深浅模式由 ThemeProvider 独立管理，详见 **Design → Themes**。
+
+## 基础色：baseColor
+
+- 控制背景、文字、边框、卡片和弱化区域等基础色。
+- 默认值为 `neutral`，应用到 html 的 `data-base-color` 属性。
+- 以下选项直接读取项目预设；色块是固定的浅色预览参考，不代表全部深浅色变量。
+
+<ul>
+  {BASE_COLORS.map(({ value, label, color }) => (
+    <li key={value}>
+      <span aria-hidden="true" style={{ display: 'inline-block', width: 12, height: 12, marginRight: 8, borderRadius: 3, backgroundColor: color }} />
+      {label}（<code>{value}</code>）
+    </li>
+  ))}
+</ul>
+
+## 主题配色：theme
+
+- 控制主要操作等区域的配色，按主题文件覆盖差异变量。
+- 默认值为 `neutral`，应用到 html 的 `data-theme` 属性。
+- 这里的 `theme` 是 `blue` 等配色标识，不是 `light` / `dark` / `system`。
+
+<ul>
+  {COLOR_THEMES.map(({ value, label, color }) => (
+    <li key={value}>
+      <span aria-hidden="true" style={{ display: 'inline-block', width: 12, height: 12, marginRight: 8, borderRadius: 3, backgroundColor: color }} />
+      {label}（<code>{value}</code>）
+    </li>
+  ))}
+</ul>
+
+## 圆角：radius
+
+- 数值单位为 `rem`，默认值为 `0.625`，写入 CSS 变量 `--radius`。
+- `0` 表示直角；预设只是常用选项，不限制使用其他有限非负数。
+- 修改基础圆角后，组件映射的各级圆角会按定义派生，并非所有组件都使用相同半径。
+
+<ul>
+  {RADIUS_OPTIONS.map(({ value, label }) => <li key={value}>{label}：<code>{value}rem</code></li>)}
+</ul>
+
+## 设置默认偏好
+
+```tsx
+import { PreferenceProvider } from '@badnpm/ui';
+
+<PreferenceProvider defaultPreference={{ baseColor: 'zinc', theme: 'blue', radius: 0.75 }}>
+  <App />
+</PreferenceProvider>
+```
+
+- 只传部分字段也可以，缺失项按库默认值补齐。
+- 已保存的有效偏好优先于 `defaultPreference`，默认值不用于强制覆盖用户选择。
+- 同一页面尽量集中挂载一个 PreferenceProvider，避免多个实例争用 html 属性。
+- Next.js 中，挂载或消费上下文的代码应位于合适的客户端边界。
+
+## 在页面中修改
+
+```tsx
+import { usePreference } from '@badnpm/ui';
+
+function AppearanceSettings() {
+  const { setBaseColor, setTheme, setRadius } = usePreference();
+
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        setBaseColor('zinc');
+        setTheme('blue');
+        setRadius(0.75);
+      }}
+    >
+      应用 Zinc / Blue / 0.75rem
+    </button>
+  );
+}
+```
+
+该示例需放在 PreferenceProvider 内。连续修改不同字段会保留已有修改；传入与当前相同的偏好时避免重复更新。
+
+## 保存与恢复
+
+- **保存位置**：默认 localStorage 键为 `bad-ui:preference`，三项设置合并为一个 JSON 对象保存。
+- **自定义键**：通过 `storageKey` 区分应用或演示环境，不会自动迁移旧键的数据。
+- **数据校验**：逐项检查存储值，无效字段回退；JSON 损坏或读取被拒绝时使用默认值。
+- **保存失败**：页面仍能更新，但不能保证刷新后恢复这次选择。
+- **跨标签页**：接收同源页面的存储变更；删除或清空后恢复默认偏好。
+
+## 查看实际效果
+
+- **Providers → PreferenceProvider**：操作基础色、配色与圆角，查看 DOM 和存储行为。
+- **Lib → Preference**：查看公开常量和默认值。
+- **Design → Styles**：了解这些偏好如何映射到 CSS 令牌。
+
+本页只介绍源码中已有的偏好字段。字体、语言、密度等目前未纳入 PreferenceProvider，不应传入不存在的配置。

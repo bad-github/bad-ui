@@ -35,7 +35,7 @@ const meta = {
     docs: {
       description: {
         component:
-          '单行输入框，透传原生 input 属性和事件。支持受控与非受控用法；标签、辅助说明、校验逻辑由调用方组合。详细说明见 Documentation / Input Guide。',
+          '单行输入框，透传原生 input 属性和事件。支持受控与非受控用法；标签、辅助说明、校验逻辑由调用方组合。详细说明见 Development / Input Guide。',
       },
     },
   },

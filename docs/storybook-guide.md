@@ -6,7 +6,9 @@
 
 通用部分使用 React + TypeScript + Vite 演示；Storybook 也支持其他框架，框架适配包和部分配置会有所不同。通用章节为教学示例；本仓库已完成基础集成，实际目录、命令和范围见末尾“在 bad-ui 项目中落地”。
 
-资料核对日期：2026-11-11。示例采用官方当前文档的 Storybook 10.6、React + Vite、CSF 3 写法，测试配置采用 Vitest 4 风格。正式安装时应核对 peer dependencies，并将通过验证的具体版本写入 lockfile；不要把不同大版本教程中的配置拼在一起。
+资料核对日期：2026-11-12。示例采用官方文档的 Storybook 10.6、React + Vite、CSF 3 写法；通用测试示例使用 `test.projects` 与浏览器 provider 配置，项目实际已安装 Vitest 5，版本和验证状态见落地章节。正式安装时应核对 peer dependencies，并将通过验证的具体版本写入 lockfile；不要把不同大版本教程中的配置拼在一起。
+
+本文已吸收旧学习笔记 `docs/storybook.md` 中未覆盖的语法、界面操作和维护说明，并按 bad-ui 的包名、目录、命令与 channel 主题同步方案调整。尚未应用的 `useArgs` 等配置标注为可选示例；导航排序已经接入，具体规则见对应章节。
 
 建议阅读顺序：理解基本概念 → 创建演示项目 → 编写第一个 story → 使用文档和预览能力 → 建立测试体系 → 接入 CI → 阅读项目落地建议。
 
@@ -40,6 +42,36 @@ Storybook 适合共享组件库、设计系统，也适合业务组件和页面�
 | Autodocs / MDX | 自动生成 API 文档 / 手写说明     | 属性表、使用规范     |
 
 Controls 中点一下、Actions 中出现一条日志，都只是人工观察。写下断言并让测试运行器执行，才形成可重复的自动化检查。
+
+## 页面布局与配置边界
+
+### Manager、Canvas 与 Docs
+
+Storybook 外围页面称为 Manager，组件在 Preview iframe 中渲染。它们是不同的页面环境，不共享 React Context；修改外围配色不会自动修改组件的 CSS 变量。
+
+```text
+Storybook（Manager）
+├── 左侧：分类、Docs、Stories 和批量测试入口
+├── 顶部：工具栏与项目自定义的外围主题按钮
+├── Preview iframe
+│   ├── Canvas：当前选中的单个 story
+│   └── Docs：说明、属性表与示例（示例还可以使用独立 iframe）
+└── 插件面板：Controls / Actions / Interactions / Accessibility
+```
+
+- **导航名称**：由 story 的 `title`、导出名与 `name` 决定，扫描范围由 `main.ts` 决定。
+- **Controls**：通过 `args`、`argTypes` 和插件参数配置编辑器，不修改组件源文件。
+- **Canvas**：由组件、`render`、`args` 和 decorators 共同决定。
+- **Docs**：由 Autodocs、MDX 和文档配置决定；文档外壳主题与其中的组件主题是不同职责。
+- **插件面板位置**：属于 Manager 布局，不是组件 CSS 能控制的区域。
+
+`preview.tsx` 中的参数也可能被外围界面消费，例如导航排序与 Controls 配置。文件在 Preview 中加载，不等于所有配置只能影响中间画布。
+
+### 官方入口与项目辅助模块
+
+`.storybook/main.ts`、`manager.ts`、`preview.tsx` 是约定入口，`preview-head.html` 是预览 head 注入入口。项目中的 `theme/`、`components/`、`decorators/`、`testing/` 是辅助模块目录，必须通过导入和调用生效，不会被自动遍历执行。
+
+Storybook 不会自动执行业务应用的 `src/main.tsx` 或 `App.tsx`。需要的 CSS、字体、Provider 和初始化逻辑，应显式接入预览环境。本项目直接使用 `storybook dev` 启动，没有旧笔记中的 `.storybook/start.mjs` 封装，具体流程见后面的项目落地章节。
 
 ## 从空目录启动 Storybook
 
@@ -249,6 +281,114 @@ Autodocs 适合属性、默认值和示例；MDX 适合使用时机、设计规�
 
 组件较少时使用 `UI/Button`、`UI/Input`；有组合组件后再增加 `Patterns/...` 和 `Pages/...`，不要提前堆叠过深目录。
 
+## CSF 配置与参数详解
+
+### TypeScript 与导出语法
+
+阅读一个 story 文件时，先看 `component` 确认展示目标，再看公共 `args`，最后看各命名导出覆盖了什么。
+
+| 写法 | 含义 |
+| --- | --- |
+| `import type { Meta, StoryObj }` | 只导入类型，不产生对应运行时代码 |
+| `typeof Input` | 在类型位置获取组件类型，供 props 推断，不是调用组件 |
+| `satisfies Meta<typeof Input>` | 检查配置兼容性，同时保留对象自身的推断信息 |
+| `export default meta` | 提供该文件共用的组件与分类配置 |
+| `StoryObj<typeof meta>` | 定义单个 story 类型，并识别 Meta 已提供的默认参数 |
+| `export const Disabled: Story` | 导出一个独立场景，类型标注本身不参与运行 |
+
+普通辅助组件和函数不应随意从 stories 文件导出，否则可能被当作 story 索引。共享工具放在独立模块；确需额外导出时，可在 Meta 中用 `includeStories` 或 `excludeStories` 限定哪些导出属于示例。
+
+### 文件名、title、导出名与 name
+
+本项目的 `input.stories.tsx` 与 `input.tsx` 同名；文件名负责代码组织，下面的字段负责导航与标识：
+
+```tsx
+const meta = {
+  title: 'Components/Input',
+  component: Input,
+} satisfies Meta<typeof Input>;
+
+export const ReadOnly: Story = {
+  name: '只读',
+  args: { readOnly: true },
+};
+```
+
+- **`title`**：用 `/` 形成导航层级，此例为 Components → Input，不决定磁盘路径。
+- **`ReadOnly`**：JavaScript 导出名，参与生成 story ID，此例通常为 `components-input--read-only`。
+- **`name`**：导航中显示的名称，可以是中文；不要求改变英文导出变量名。
+- 修改 `title` 或导出名后，应检查收藏链接和手写 story ID 引用；只改文件名并保留这些字段通常不改变 story ID。
+
+### argTypes 与 Controls 的区别
+
+`args` 保存输入值，`argTypes` 描述这些值如何编辑和展示。组件实现的默认值、story 的演示值、属性表中的默认值说明是三回事。
+
+| 字段 | 用途 |
+| --- | --- |
+| `control: 'text' / 'boolean' / 'number' / 'object'` | 指定编辑器类型 |
+| `control: 'select'` 与 `options` | 提供枚举选项 |
+| `control: { type: 'number', min: 0, max: 10, step: 1 }` | 限定编辑器输入范围，不代替组件业务校验 |
+| `description` | 解释参数含义、单位和边界 |
+| `table.category` | 对属性表分组 |
+| `table.defaultValue.summary` | 记录默认值说明，不会设置实际 props |
+| `control: false` | 禁止编辑，仍可保留说明行 |
+| `table.disable: true` | 隐藏属性表行，不删除组件属性 |
+
+`parameters.controls` 还可配置 `include`、`exclude`、`sort`、`expanded`。例如只展示 `variant` 和 `disabled`，不代表组件只支持这两个属性。完整配置见 [Controls 官方说明](https://storybook.js.org/docs/essentials/controls)。
+
+### 配置层级与 render 的属性顺序
+
+- 全局默认放在 `preview.tsx`，组件公共配置放在 Meta，单个场景的差异放在 story。
+- 相同 `args` 字段由更具体的配置覆盖；复杂业务对象需要保留字段时显式展开，不依赖隐式合并。
+- `parameters` 按 Storybook 规则合并，数组通常替换；局部配置一个字段不等于清空所有全局参数。
+- `<Input {...args} readOnly />` 始终只读；`<Input readOnly {...args} />` 则允许 args 覆盖前面的只读值。
+- `render` 忘记传递 args 时，Controls 可能看起来可编辑，组件却不变化。
+
+`render` 负责单个场景的组合，decorator 负责复用环境。React Hook 放在独立 React 示例组件中；不要在模块顶层或普通辅助函数中调用。
+
+### 受控状态与 useArgs
+
+当前 Input 的 Controlled 示例使用 React `useState` 管理本地状态，输入能更新，但不会自动把值同步回 Controls。如果希望组件操作和 Controls 双向联动，可以使用 `storybook/preview-api` 的 `useArgs`。
+
+以下是可追加到 Input stories 文件的可选示例，不表示当前实现已经改为此模式：
+
+```tsx
+import { useArgs } from 'storybook/preview-api';
+
+export const SyncedControls: Story = {
+  args: { value: '' },
+  argTypes: { value: { control: 'text' } },
+  render: function Render(args) {
+    const [{ value }, updateArgs] = useArgs<{ value: string }>();
+    return (
+      <Input
+        {...args}
+        value={value}
+        onChange={(event) => {
+          args.onChange?.(event); // 保留 Actions 记录和事件断言。
+          updateArgs({ value: event.currentTarget.value });
+        }}
+      />
+    );
+  },
+};
+```
+
+- `useArgs` 返回当前参数和更新方法；更新参数会驱动 story 重渲染并同步 Controls。
+- `fn()` 只记录调用，不会替你更新 `value` 或执行真实业务操作。
+- 使用 Storybook Hook 的 render 不要混入 React Hook；需要本地 React 状态时，沿用独立 React 示例组件的方式。
+- `defaultValue` 等初始值主要在挂载时生效。可用 React `key` 强制重挂载，但这会清空该示例的其他本地状态，应明确告知读者。
+
+参考：[Args 与 useArgs](https://storybook.js.org/docs/writing-stories/args)。
+
+### 复合组件、辅助数据与工具栏
+
+- 弹窗、菜单等依赖上下文的组件，应在完整组合中演示，不能把依赖父级的子组件单独渲染。
+- Meta 中的 `subcomponents` 可补充子组件属性文档，但不会自动创建 story、装配上下文或生成子组件 Controls。
+- `loaders` 可异步准备数据，渲染上下文通过 `loaded` 读取；优先用固定数据建立可复现示例。
+- `globalTypes` 可定义主题或语言工具栏，`initialGlobals` 设置初始值；decorator 通过 `context.globals` 连接 Provider 或组件输入。仅声明菜单不会自动改变组件。
+- 本项目实际的外围主题同步使用自定义工具和 channel，不使用上述可选 globals 方案。
+
 ## 为组件补充环境与文档
 
 ### 使用 decorators 提供外层环境
@@ -280,6 +420,65 @@ Provider 的包裹方式相同。全局只放所有 stories 都需要的环境�
 先使用 Autodocs 自动生成属性与 stories 展示，再通过 MDX 补充“何时使用”“如何组合”“有哪些限制”。文档中的示例应尽量引用现有 stories，减少两份示例逐渐不一致的情况。
 
 设计师可以通过工作台审查状态，开发者通过 Controls 探索 API，测试人员通过固定 story 复现缺陷。静态构建后也可以把相同内容发布给团队。
+
+### 导航排序与 Docs 源码展示
+
+本项目在 `preview.tsx` 的 `parameters.options` 中使用以下排序配置，将 Development、Design 固定在最前，其余分组和各组内部按英文名称排序：
+
+```ts
+options: {
+  storySort: {
+    method: 'alphabetical',
+    order: ['Development', 'Design', '*'],
+    includeNames: true,
+    locales: 'en',
+  },
+},
+```
+
+`order` 只固定前两个顶层分类，`*` 表示其余分类；`includeNames: true` 将单个 story 名称也纳入排序，取代原来的源码声明顺序。`locales: 'en'` 固定英文比较规则。参考[导航与排序](https://storybook.js.org/docs/writing-stories/naming-components-and-hierarchy/)。
+
+自定义 `render` 的自动源码不一定最适合使用者，可在 Meta 或 story 的 `parameters.docs` 中补充：
+
+```ts
+docs: {
+  description: { story: '用于展示受控输入的最小用法。' },
+  source: { code: '<Input aria-label="姓名" value={name} onChange={handleChange} />', language: 'tsx' },
+  story: { inline: false, height: 320 },
+},
+```
+
+- `source.code` 只展示字符串，不执行代码；应随真实组件 API 一起维护。
+- `story.height` 设置 Docs 示例 iframe 高度，不是组件高度或视口宽度。
+- 独立 iframe 的参数编辑体验应实际检查；需要稳定调参时可打开单独的 Canvas。
+- 仓库的 `docs/*.md` 不会自动进入在线文档；只有扫描范围内的 MDX 才会被索引。Markdown 围栏里的 React 代码也只是文本，交互预览需引用已有 story。
+
+参考：[Source 文档块参数](https://storybook.js.org/docs/api/doc-blocks/doc-block-source)。
+
+## 启动参数、静态资源与环境变量
+
+### CLI 与 Vite 的职责
+
+端口和自动打开浏览器由 Storybook CLI 管理，不能用 Vite 的 `server.port`、`server.open` 代替，也不是 `main.ts` 的直接配置字段。
+
+| 参数 | 用途 |
+| --- | --- |
+| `--port 6006` | 指定端口 |
+| `--no-open` | 不自动打开浏览器 |
+| `--host 0.0.0.0` | 监听所有网卡，供局域网设备访问 |
+| `--exact-port` | 端口被占用时退出，不自动换端口 |
+| `--config-dir .storybook` | 指定配置目录 |
+| `--smoke-test` | 启动成功后退出，只用于启动检查，不执行全部组件测试 |
+
+在 UI 包目录可以运行 `pnpm exec storybook dev --port 6006 --exact-port --no-open`。修改插件、Manager 入口或 head 模板后应重启；普通组件和 story 修改通常可热更新。参考 [CLI 参数](https://storybook.js.org/docs/api/cli-options)。
+
+### 静态资源与环境变量
+
+- 组件旁的图片、字体等可以通过源码 import 交给 Vite 处理。
+- 需要按 URL 暴露静态目录时，可在 `main.ts` 中声明 `staticDirs: ['../public']`；路径相对配置目录，目录需实际存在。本项目目前未配置此项。
+- `main.ts` 在 Node.js 中加载，Preview 代码在浏览器运行；环境变量的读取、前缀和注入规则需按运行环境及 Vite 配置区分。
+- 注入浏览器的值会进入页面产物，不适合放私密令牌；静态构建后更改服务器环境变量通常不会自动改写已打包值。
+- 部署后应检查资源、导航深链和主题切换；本地开发地址与部署地址的 localStorage 分别保存。
 
 ## 先看懂测试方案的分工
 
@@ -413,6 +612,25 @@ parameters: {
 为 Input 提供关联 label；为纯图标 Button 提供可访问名称。弹窗类组件加入打开、关闭、Escape、焦点限制与焦点恢复的交互测试。
 
 自动扫描通过后，仍需人工检查 Tab 顺序、焦点可见性、读屏宣布内容、缩放和高对比度体验。对于错误提示和动态状态，也要检查提示出现后的可感知性。
+
+### Accessibility 规则数量与人工体验
+
+- **Passes 12** 表示通过 12 条检查规则，不是执行了 12 个 story 或业务测试。
+- **Incomplete / Inconclusive** 表示工具无法确定，需要人工判断；不同界面可能使用不同名称。
+- **Violations 0** 只说明本次扫描未发现明确违规，不表示所有交互状态或主题都已检查。
+- **Button name 通过** 说明按钮有可访问名称，但名称是否准确表达用途仍需人工判断。
+- **Color contrast 通过** 不代表焦点清晰、内容无遮挡或错误文案易懂。
+- `aria-label`、`aria-expanded` 等补充角色、名称与状态；有原生语义和可见文字时，应优先使用，不必为每个元素重复添加 ARIA。
+
+手动检查时，尽量在独立预览页面操作，减少 Storybook 自身工具栏和导航对焦点顺序的干扰：
+
+- **键盘操作**：用 Tab / Shift + Tab 检查顺序与焦点可见性，用 Enter / Space 激活按钮。菜单、Tabs 等还需按相应交互模式检查方向键，不要求所有选项都有独立 Tab 停靠点。
+- **模态弹窗**：打开后焦点进入弹窗，Tab 留在弹窗内部；允许 Escape 关闭时，关闭后焦点返回触发器。非模态 Popover 不一定采用同样的焦点限制。
+- **屏幕阅读器**：例如 macOS VoiceOver，检查名称、角色、状态和错误提示是否能帮助用户理解用途，而不只是“能读出声音”。
+- **缩放与主题**：以 200% 缩放检查标签、提示、控件是否截断或重叠，再检查深浅模式的文字和焦点。
+- **状态变化**：错误不能只靠红色表达；为正常、展开、禁用、错误、空结果等适用状态分别检查。
+
+记录问题时写明 story、主题、操作、期望和实际结果。能够稳定复现的键盘与焦点行为可补入 `play`；读屏体验仍需人工验证。参考 [W3C 无障碍初步检查](https://www.w3.org/WAI/test-evaluate/easy-checks/)。
 
 ## 视觉回归测试
 
@@ -561,6 +779,9 @@ pnpm build-storybook
 
 | 现象                      | 优先检查                                                   |
 | ------------------------- | ---------------------------------------------------------- |
+| 新 story 未出现           | 文件后缀、扫描范围、默认 Meta、命名导出和终端报错          |
+| Docs 未生成               | Docs 插件、autodocs 标签及是否有冲突的文档配置             |
+| Controls 改值但组件不变   | render 是否展开 args，是否为未同步的受控值或仅挂载生效的初始值 |
 | 组件无样式                | preview 是否导入 UI styles，Tailwind 插件是否加载          |
 | 某些工具类没有生成        | `@source` 是否覆盖 story，是否使用动态 class 拼接          |
 | 找不到共享包或别名        | workspace 依赖是否存在，Vite alias 是否继承                |
@@ -571,6 +792,11 @@ pnpm build-storybook
 | a11y 面板有问题但 CI 通过 | 是否设置 `test: 'error'`，setup 是否导入 a11y annotations  |
 | 构建成功但交互失败        | build 不能替代 Vitest，是否真正执行测试脚本                |
 | 快照频繁变化              | 是否包含随机数据、动画、日期或系统差异                     |
+| 测试入口灰色或 Not run    | 是否已在当前 Storybook 会话执行测试，而非只在终端执行      |
+| Coverage 没有报告入口     | 是否退出监听模式、启用 Coverage 并运行完整测试            |
+| 启动端口不符              | Storybook CLI 参数、端口占用以及是否使用 --exact-port      |
+
+先看终端和浏览器 Console，再区分 Manager、Preview、Docs 或测试进程的问题，不应把清空全部浏览器存储作为默认排查动作。主题键只影响对应偏好，不能解释所有预览错误。
 
 旧文章中的 `@storybook/testing-library`、`@storybook/jest` 和实验性 test 插件，不应直接用于本文的新接入方案。这里使用 `storybook/test`、`@storybook/addon-vitest`；插件与 API 以选定主版本文档为准。
 
@@ -637,6 +863,8 @@ Storybook 先在 Node.js 中读取 `main.ts` 确定构建方式、插件及 stor
 
 `manager.ts` 通过 `manager/theme-storage.ts` 读取 `bad-ui:storybook:manager-theme`，恢复外围主题，无有效记录时默认深色，并显式调用 `manager/theme-tool.tsx` 的注册函数。辅助文件通过 `addons.register`、`addons.add` 和 `types.TOOL` 在顶部工具栏添加深浅色切换按钮，Canvas 与 Docs 页面均可使用。
 
+`manager/theme-config.ts` 为浅深色主题共用 `brandTitle`，显示原 Storybook 书签图标和 `@badnpm/ui` 粗体文字，不额外配置链接。默认品牌本身是包含图标和文字的整张 SVG，设置纯文本标题会整体替换它，因此这里使用固定 HTML / SVG 保留图标、大小和对齐方式，文字颜色继承外围主题。品牌配置需要在两套外围主题中都保留，避免切换后恢复默认标识。当前版本的搜索占位文案 `Find components` 内置于 Manager，没有公开的 placeholder 配置，本项目暂时保留该文案，不通过 DOM 脚本替换。
+
 manager 的 JSX 构建流程独立于 Vite 预览配置；工具栏 TSX 文件显式 `import * as React from 'react'`，确保经典 JSX 转换生成的 `React.createElement` 有对应的运行时变量，避免 `React is not defined`。仅通过 TypeScript 检查不能证明浏览器中不存在此问题。
 
 按钮使用 Storybook 的 `IconButton`，通过 `useTheme` 读取外围当前主题，点击时调用 `useStorybookApi().setOptions({ theme })` 更新外围配置。按钮文字显示当前主题：浅色时显示 `light`，深色时显示 `dark`；title 和可访问名称说明切换目标。无需新增依赖。工具栏切换时保存外围偏好，刷新后恢复。读写 localStorage 失败时不会阻止界面运行；读取失败时默认深色。存储键与预览 Provider 的 `bad-ui:storybook:theme` 独立，预览单独切换不会改变外围选择。外围变化会单向同步到预览区 ThemeProvider，Docs 正文通过独立容器订阅同一个外围主题。新增或修改主配置、manager 配置后建议重启 Storybook，确保入口重新构建。
@@ -651,7 +879,7 @@ manager 的 JSX 构建流程独立于 Vite 预览配置；工具栏 TSX 文件�
 
 Storybook 的 localStorage 键统一在 `.storybook/theme/storage-keys.ts` 维护：`themeStorageKeys.manager` 用于外围，`themeStorageKeys.preview` 用于组件预览。TS/TSX 文件直接导入常量；`main.ts` 的 `previewHead` 只在已有 head 内容之前注入 `window.__STORYBOOK_THEME_STORAGE_KEYS__` 对象。主题恢复逻辑仍写在 `preview-head.html`：优先使用对象中的 key，未注入对象或对应字段时，回退到 `bad-ui:storybook:theme` 和 `bad-ui:storybook:manager-theme`。没有占位符替换，也不再生成整段主题脚本。该钩子不编译或注入 CSS。正常集成时修改 key 只需改常量；HTML 中的具体字符串仅作缺少注入时的默认值，已有记录不会自动迁移。
 
-另外，Storybook 外围还有一层 `LoaderWrapper`，在 iframe 尚未就绪时显示。它使用 manager 的 `appPreviewBg`，不是 iframe 内的 loading 样式。`manager/theme-config.ts` 直接设置最终颜色：浅色为 `oklch(1 0 0)`，深色为 `oklch(0.145 0 0)`，对应当前 Neutral 基础色的背景。外围无需 `managerHead` 注入变量，也无需设置 `data-preview-theme` 属性；调整组件库基础背景色时需同步这些值。外围通过 globals 向预览同步主题的逻辑仍保留。
+另外，Storybook 外围还有一层 `LoaderWrapper`，在 iframe 尚未就绪时显示。它使用 manager 的 `appPreviewBg`，不是 iframe 内的 loading 样式。`manager/theme-config.ts` 直接设置最终颜色：浅色为 `oklch(1 0 0)`，深色为 `oklch(0.145 0 0)`，对应当前 Neutral 基础色的背景。外围无需 `managerHead` 注入变量，也无需设置 `data-preview-theme` 属性；调整组件库基础背景色时需同步这些值。外围通过下面说明的专用 channel 事件向预览同步主题，不依赖 globals。
 
 首帧脚本优先读取预览的 `bad-ui:storybook:theme`，没有有效值时才读取外围的 `bad-ui:storybook:manager-theme`；两者都无有效值或存储不可访问时默认深色。预览存储为 `system` 时解析系统配色，使 loading 与恢复后的预览主题一致。脚本仅用于首次绘制，后续由 ThemeProvider 和外围同步接管。loading 遮罩背景为浅色 `oklch(1 0 0)` / 深色 `oklch(0.145 0 0)`，文字为浅色 `oklch(0.145 0 0)` / 深色 `oklch(0.985 0 0)`，转圈圆环为浅色 `oklch(0.97 0 0)` / 深色 `oklch(0.269 0 0)`。这些值对应 Neutral 中的背景、前景和弱化色，调整基础色时需同步。body 的固定颜色只用于 loading 阶段，story 显示后仍使用组件库样式。
 
@@ -685,7 +913,24 @@ Docs 容器将当前主题写入自身文档的 `data-storybook-docs-theme`，�
 
 Components 分组保留 Input 作为后续组件的详细参考，并已补充 Button、ThemeToggle 示例。Input 有可访问名称，错误提示通过 `aria-describedby` 关联，四类事件使用 `storybook/test` 的 `fn()` 记录。`argTypes` 按基本属性、值管理、状态、校验、无障碍和事件分组，提供中文说明。
 
-`packages/ui/src/docs/input.mdx` 在侧边栏 **Documentation → Input Guide** 展示完整使用指南，组合可见标签、辅助说明、受控输入及错误示例，解释属性透传、原生校验与测试边界。示例中的 `label` 使用原生 HTML，本包尚未提供独立的 Field / Label 组件。
+`packages/ui/src/docs/input.mdx` 在侧边栏 **Development → Input Guide** 展示完整使用指南，组合可见标签、辅助说明、受控输入及错误示例，解释属性透传、原生校验与测试边界。示例中的 `label` 使用原生 HTML，本包尚未提供独立的 Field / Label 组件。
+
+在线文档统一使用 `Development` 分组，快速开始按使用框架继续分层：
+
+- `src/docs/getting-started/vite.mdx`：**Development → Getting Started → Using with Vite**，说明应用入口 CSS、React 挂载和主题接入。
+- `src/docs/getting-started/nextjs.mdx`：**Development → Getting Started → Using with Next.js**，面向 React 19 的 App Router 应用，说明根布局样式、客户端交互组件和 Providers 边界。
+- Next.js 接入示例尚未在独立消费应用中验证；Storybook 的 MDX 构建成功不能替代 Next.js 的实际生产构建。
+- 分组由 MDX 的 `Meta title` 决定；新增框架文档沿用 `Development/Getting Started/Using with Framework`，文件名保持 kebab-case。
+
+设计介绍统一放在 `src/docs/design/`，侧边栏使用独立的 **Design** 分组：
+
+- **Styles**（`styles.mdx`）：预编译样式入口、语义化令牌、圆角、状态和构建边界。
+- **Themes**（`themes.mdx`）：深浅模式、基础色、配色方案、圆角，以及两个 Provider 的职责和存储方式。
+- **Preferences**（`preferences.mdx`）：从源码读取基础色、配色和圆角选项，说明默认偏好、动态修改、存储校验与恢复。
+- **Typography**（`typography.mdx`）：可选 Geist Variable 字体、字体令牌、当前组件排版和应用字体覆盖方式。
+- **Icons**（`icons.mdx`）：Lucide React 的导入、尺寸与布局、按钮可访问名称，以及与 Storybook 外围图标的区别。
+
+这些文档按当前源码描述已实现的设计基础，不将未来组件、未提供的字体或完整产品排版系统当作已有能力。
 
 新增组件时按实际需求选择关键场景即可，不必复制 Input 的所有属性和测试。涉及状态的 React 示例组件定义在模块顶层，避免在普通回调中调用 Hooks 或因重新定义组件导致状态重置。
 
@@ -778,7 +1023,7 @@ pnpm --filter @badnpm/ui build
 
 本节按照 Storybook Testing 引导清单的顺序记录本项目的测试接入过程。已接入的模块记录实际依赖、配置和验证状态；其余模块保留入口，后续逐项补充。
 
-目前已有组件预览、自动文档和 a11y 面板，并已安装 Vitest 插件及浏览器测试依赖、生成测试配置，添加组件测试运行命令。Input 的 13 个场景已在 Chromium 中通过测试，含交互断言和已启用的无障碍检查，覆盖率报告也已生成验证。视觉测试暂缓，CI 流程尚未接入。上文通用测试章节不能直接当作本仓库已经启用的能力。
+目前已有组件预览、自动文档和 a11y 面板，并已安装 Vitest 插件及浏览器测试依赖、生成测试配置，添加组件测试运行命令。现有 41 个场景已在 Chromium 中通过测试，含交互断言和已启用的无障碍检查，覆盖率报告也已生成验证。视觉测试暂缓；GitHub Actions 工作流已配置，待推送后确认远程执行。上文通用测试章节不能直接当作本仓库已经启用的能力。
 
 ### 安装 Vitest 插件（Install Vitest addon）
 
@@ -888,6 +1133,14 @@ pnpm --filter @badnpm/ui test-storybook
 - 执行 `pnpm storybook` 启动工作台，在 Vitest 插件提供的测试入口中运行测试、查看结果。
 - 单次命令行测试不要求先启动 Storybook 开发服务，也不要求先构建静态站点。
 
+#### 侧边栏测试入口与当前会话状态
+
+- 组件或分组的三点菜单中，**Run component tests** 用于运行对应范围的 stories。
+- **Not run** 或灰色状态通常表示当前会话还没有运行结果，不等同于没有安装插件。
+- 菜单中的 Interactions / Accessibility 结果入口，与底部当前 story 的插件面板承担不同职责：前者指向批量运行结果，后者帮助查看当前示例的步骤或规则详情。
+- 在终端执行测试成功，不会自动把结果同步进已经打开的 Storybook 侧边栏；需要在工作台中执行一次才能查看本次会话的状态。
+- Portal 弹层可能超出当前 canvas 子树。编写后续弹窗测试时，可从 `canvasElement.ownerDocument.body` 建立查询范围，避免查询到 Manager 或其他 iframe 的节点。
+
 #### 当前状态
 
 - 已添加单次运行和监听模式命令。
@@ -962,7 +1215,7 @@ pnpm test-storybook
 
 - `pnpm --filter @badnpm/ui typecheck`：通过。
 - 首次浏览器测试曾因沙箱监听端口权限受限而无法启动；后续在获准的沙箱外运行中，全部 13 个 Input 测试通过，包含新增的交互场景。
-- 当前场景已扩展为完整的 13 项清单，见 Storybook 的 **Documentation → Input Guide**；源码保留 API 中文注释。Storybook / 插件版本兼容范围差异仍需对齐。
+- 当前场景已扩展为完整的 13 项清单，见 Storybook 的 **Development → Input Guide**；源码保留 API 中文注释。Storybook / 插件版本兼容范围差异仍需对齐。
 
 官方参考：[交互测试](https://storybook.js.org/docs/writing-tests/interaction-testing)。
 
@@ -1115,6 +1368,16 @@ pnpm --filter @badnpm/ui test-storybook:coverage
 
 根目录 `.gitignore` 已忽略 `coverage/`，UI 包 ESLint 配置也已忽略该目录。报告是本地生成产物，不提交 Git；后续 CI 可按需归档。
 
+#### 在 Storybook 界面生成覆盖率
+
+- 展开侧边栏测试控件，退出 Watch 监听模式，勾选 **Coverage**，运行完整组件测试。
+- 完成后通过覆盖率摘要入口查看详细报告；若入口不可用，先确认不是只运行了单个组件，也未停留在 Watch 模式。
+- 此处指 Storybook 插件界面的覆盖率流程，不代表 Vitest 命令行完全不支持监听采集。
+- 插件运行结果与命令行输出的 `packages/ui/coverage` 不会自动互相导入；生成本地 HTML 不等于界面侧栏已拥有同一次结果。
+- 本工程命令行配置只有 `text`、`html` reporter，当前不承诺输出 `coverage-summary.json`。需要机器可读汇总时，应显式增加 `json-summary` reporter。
+
+目录标红表示执行覆盖率较低，不表示该目录已经存在功能错误。进入具体文件后应区分没有执行的行、未走到的分支、未调用的回调，再决定该补何种场景。
+
 #### 验证状态
 
 - 已添加配置、采集命令和生成目录忽略规则。
@@ -1130,4 +1393,66 @@ pnpm --filter @badnpm/ui test-storybook:coverage
 
 ### 在 CI 中自动运行测试（Automate tests in CI）
 
-- 接入步骤：待补充。
+#### 工作流入口
+
+新增 `.github/workflows/storybook-tests.yml`，使用 GitHub Actions 自动执行 UI 包的质量检查。工作流名称为 **Storybook tests**，检查任务名称为 **UI checks**。
+
+- **`push`**：推送任意分支时检查，不假定默认分支名。
+- **`pull_request`**：创建或更新 PR 时检查。
+- **`workflow_dispatch`**：工作流进入默认分支后，可在 GitHub Actions 页面手动运行。
+- **`concurrency`**：同一 PR 或分支更新时取消旧运行，保留最新检查；push 与 PR 事件仍可能分别产生运行。
+- **`permissions.contents: read`**：只授予读取仓库内容的权限，检出后不保留 Git 凭证；无需配置 npm 发布 Token 或 Chromatic 密钥。
+
+本地新增配置不等于 GitHub 已执行。需要将代码和工作流推送至 GitHub 仓库，并确保仓库允许使用这些 Actions；fork PR 首次运行可能需要维护者批准。
+
+#### 环境与依赖
+
+- **运行器**：GitHub 托管的 `ubuntu-24.04`，单次任务超时为 20 分钟。
+- **Node.js**：`actions/setup-node@v6` 安装 Node.js 24，与当前本地验证的大版本一致；本工作流不验证全部受支持 Node.js 版本。
+- **pnpm**：`pnpm/action-setup@v6` 从根 `package.json` 的 `packageManager` 读取 `11.25.0`，不在 YAML 中重复维护版本。
+- **依赖缓存**：pnpm Action 缓存 store，以根 `pnpm-lock.yaml` 为默认缓存依据；命中缓存后仍执行安装，不把缓存当成完整的 `node_modules`。
+- **锁定安装**：根目录执行 `pnpm install --frozen-lockfile`，使用提交的依赖版本；依赖声明与 lockfile 不一致时失败，而不是在 CI 中重新解析 `latest`。
+- **浏览器**：执行 `pnpm --filter @badnpm/ui exec playwright install --with-deps chromium`，下载与当前 Playwright 匹配的 Chromium，并安装 Linux 系统依赖。
+
+CI 服务器使用自己的浏览器环境，不能复用开发者电脑的 macOS 浏览器缓存。本工作流不缓存浏览器，避免遗漏系统依赖安装。
+
+#### 执行的检查
+
+以下命令均从仓库根目录运行，使用包筛选限定到 `@badnpm/ui`：
+
+```sh
+pnpm --filter @badnpm/ui typecheck
+pnpm --filter @badnpm/ui lint
+pnpm --filter @badnpm/ui test-storybook:coverage
+pnpm --filter @badnpm/ui build-storybook
+pnpm --filter @badnpm/ui build
+```
+
+- **类型检查**：验证 UI 源码、stories 及 Storybook / Vitest 配置的 TypeScript 类型。
+- **ESLint**：检查 UI 包的代码规范及 Hooks 规则。
+- **组件测试与覆盖率**：运行现有 stories、`play` 交互断言和 `a11y.test: 'error'` 无障碍检查，同时生成报告；无需提前启动 Storybook 开发服务。
+- **Storybook 构建**：检查 stories、MDX 和预览配置能生成静态站点；该步骤不负责部署。
+- **npm 包构建**：检查 Rollup 模块、类型声明、CSS 与字体等发布产物能生成；该步骤不负责发布 npm。
+
+工作流显式设置 `CI=true`。任一步骤失败会让任务失败，并跳过后续普通检查；不使用 `continue-on-error` 掩盖失败。目前未设置覆盖率阈值，因此覆盖率数字低不会单独导致 CI 失败。
+
+#### 保存和查看结果
+
+- 在 GitHub 仓库的 **Actions → Storybook tests** 打开运行记录，展开步骤查看失败原因；PR 中也会显示检查状态。
+- `actions/upload-artifact@v4` 将 `packages/ui/coverage/` 保存为 **ui-coverage** 附件，保留 7 天。
+- 测试失败但生成了报告时仍尝试上传，便于排查；未生成报告时显示警告，不会把原测试失败变成成功。
+- 下载并解压附件后，用浏览器打开其中的 `index.html`；这是运行附件，不会提交到 Git 或自动发布为网站。
+
+#### 将检查设为合并门禁
+
+- 自动检查与强制禁止合并是不同的配置；仅提交工作流文件不会自动禁止合并失败 PR。
+- 首次运行后，在 GitHub 仓库的 Rulesets 或分支保护中，为目标分支启用必需状态检查，选择 **UI checks**。
+- 本次只提交工作流配置，不通过 API 修改远程仓库规则；未配置门禁时，维护者仍可能手动合并失败的 PR。
+
+#### 验证状态
+
+- 工作流 YAML 已通过本地解析，核对了使用的 Action 输入和现有命令；三个工作区清单中的依赖版本声明与 lockfile 一致。
+- UI 包类型检查、完整 ESLint 和发布构建通过。执行 `CI=true pnpm --filter @badnpm/ui test-storybook:coverage`，8 个测试文件、41 个测试通过，含无障碍检查；整体行覆盖率 `95.23%`。Storybook 构建已在前一轮同份源码的验证中通过。
+- 当前仓库未配置 Git remote，尚未在 GitHub 托管的 Linux 运行器上验证依赖安装、浏览器系统依赖和实际工作流执行；首次远程运行结果需要推送后确认。
+
+官方参考：[pnpm Action 配置](https://github.com/pnpm/action-setup)、[Playwright CI 环境](https://playwright.dev/docs/ci)、[GitHub 构建附件](https://github.com/actions/upload-artifact)。

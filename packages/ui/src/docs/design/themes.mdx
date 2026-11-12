@@ -1,0 +1,67 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Design/Themes" />
+
+# 主题
+
+项目将外观拆为四个独立维度：深浅模式、基础色、主题配色与圆角。所有预设已包含在默认 CSS 中，不需要分别导入每种颜色文件。
+
+本页介绍主题机制及深浅模式；基础色、配色和圆角的完整选项、动态修改与持久化说明见 **Design → Preferences**。
+
+## 深浅模式
+
+- **ThemeProvider**：管理 `light`、`dark`、`system`，通过根元素的 `.light` / `.dark` 类应用实际配色。
+- **默认行为**：默认跟随系统；已有的有效保存值优先于 `defaultTheme`。
+- **存储键**：默认 `bad-ui:theme`，支持自定义。
+- **useTheme**：返回 `theme`、`setTheme`、`toggleTheme`；`theme` 可以是 `system`，不等于已解析的实际深浅值。
+- **ThemeToggle**：基于当前实际配色切换深浅，主动切换后不再跟随系统。
+
+## 基础色与主题配色
+
+- **基础色**：Neutral、Mist、Zinc，主要控制页面背景、文字、卡片、边框及弱化区域。
+- **主题配色**：Neutral、Blue、Green、Orange、Pink、Purple、Red、Rose、Sky、Yellow，主要覆盖主色等差异变量，其余沿用公共定义。
+- **根属性**：`data-base-color` 控制基础色，`data-theme` 控制配色，两者可组合。
+- **圆角**：默认 `0.625rem`，预设为 `0`、`0.25`、`0.5`、`0.625`、`0.75`、`1`；允许其他有限非负数。
+
+## 使用 Provider
+
+以下示例放在客户端组件中；Next.js 应在文件顶部声明 `'use client'`：
+
+```tsx
+import { ThemeProvider, PreferenceProvider, ThemeToggle } from '@badnpm/ui';
+import type { ReactNode } from 'react';
+
+export function Providers({ children }: { children: ReactNode }) {
+  return (
+    <ThemeProvider defaultTheme="system">
+      <PreferenceProvider defaultPreference={{ baseColor: 'neutral', theme: 'blue', radius: 0.625 }}>
+        <ThemeToggle />
+        {children}
+      </PreferenceProvider>
+    </ThemeProvider>
+  );
+}
+```
+
+- 应用仍需引入 `styles/index.css`；页面整体跟随配色时再引入 `styles/custom.css`。
+- PreferenceProvider 默认值为 Neutral 基础色、Neutral 配色、`0.625rem` 圆角；默认存储键为 `bad-ui:preference`。
+- `usePreference()` 返回当前 `baseColor`、`theme`、`radius`，以及 `setBaseColor`、`setTheme`、`setRadius`。
+- 此处 `setTheme('blue')` 修改配色；`useTheme().setTheme('dark')` 修改深浅模式，二者含义不同。
+- Provider 修改整个页面的 html，适合在应用根部集中挂载，不应当作只影响局部卡片的容器。
+
+## 不使用 Provider
+
+固定主题也可以直接配置 HTML 根元素：
+
+```html
+<html class="dark" data-base-color="zinc" data-theme="blue" style="--radius: 0.75rem">
+```
+
+不要同时用手动脚本与 Provider 争用这些根属性。Provider 在客户端就绪后才恢复偏好，首屏处理需结合应用框架设计，详见 **Development → Getting Started**。
+
+## Storybook 中的主题
+
+- 外围导航与 Docs 外壳使用 Storybook 自身的主题配置。
+- 组件预览使用组件库 Provider，外观与外围界面有各自的状态和存储键。
+- 顶部外围主题按钮、预览 ThemeToggle 的作用范围不同，不能用外围界面配色代替组件主题验证。
+- **Providers → ThemeProvider / PreferenceProvider** 展示可交互示例；**Lib → Preference** 列出源码预设。

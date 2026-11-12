@@ -1,0 +1,126 @@
+# GitHub Actions 工作流：GitHub 在服务器上读取并执行，不会因本地保存此文件而运行。
+# 将此文件随仓库推送到 GitHub，并启用 Actions 后，由下面的 on 事件触发。
+# 只检查和生成产物，不部署 Storybook，也不发布 npm 包。
+# name 是 Actions 页面上的工作流名称，可与文件名不同。
+name: Storybook tests
+
+# 不限制分支，避免假定仓库默认分支名；也支持在 Actions 页面手动触发。
+on:
+  # 推送分支或标签时运行；未配置 branches / paths 过滤，文档修改也会触发。
+  push:
+  # 默认在 PR 创建、重新打开、更新提交时运行，不是每次评论都会运行。
+  # 通常检查 PR 与目标分支的合并结果，便于提前发现合并后的问题。
+  # 向已开 PR 的分支推送时，可能同时触发 push 和 pull_request 两次运行。
+  pull_request:
+  # 手动触发入口：文件进入默认分支后，可在 Actions 页面选择分支并运行。
+  workflow_dispatch:
+
+# 控制本工作流自动获得的 GITHUB_TOKEN 权限；未列出的权限默认为 none。
+# 这里仅需读取源码，无需配置个人访问 Token、npm Token 或 Chromatic 密钥。
+permissions:
+  contents: read
+
+# 同一 PR / 分支有新提交时，取消旧检查，避免重复占用运行资源。
+concurrency:
+  # ${{ ... }} 是 GitHub 表达式，服务器运行时求值，不是 shell 变量。
+  # workflow：工作流名称；有 PR 时取 PR 编号，否则取分支/标签的完整 ref。
+  # 同组运行互相替代，不同 PR / 分支可并行；push 与 PR 运行通常属于不同组。
+  group: storybook-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  # 同组有新运行时取消旧运行；不取消其他分支或其他 PR 的检查。
+  cancel-in-progress: true
+
+# jobs 定义任务；多个 job 默认可并行。当前只定义一个，内部 steps 按顺序执行。
+jobs:
+  # ui-tests 是供配置引用的任务 ID，name 则是 PR / Actions 中展示的检查名称。
+  ui-tests:
+    name: UI checks
+    # 每次使用干净的 GitHub 托管 Ubuntu 虚拟机，不使用开发者本机环境。
+    runs-on: ubuntu-24.04
+    # 超过 20 分钟停止任务，避免浏览器或安装异常时无限等待。
+    timeout-minutes: 20
+    env:
+      # 对该任务全部步骤生效，让工具识别为 CI；用字符串避免 YAML 布尔值歧义。
+      CI: 'true'
+
+    # uses 调用已有 Action，@v6 / @v4 是 Action 自身版本，不是 Node 或 pnpm 版本。
+    # with 是该 Action 的输入参数；run 执行 shell 命令，默认目录为检出的仓库根目录。
+    # 普通步骤默认仅在前面成功时运行；失败后任务保留失败状态，后续普通步骤跳过。
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          # 拉取本次触发对应的源码；不为后续 Git 命令保留认证凭证。
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          # 项目测试运行时使用 Node.js 24；不是要求用户安装 setup-node 的版本号。
+          node-version: '24'
+          # 依赖缓存统一交给下方 pnpm Action，避免重复配置缓存。
+          package-manager-cache: false
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          # 版本读取根 package.json 的 packageManager，避免两处维护版本。
+          # 这里只准备 pnpm，安装依赖交给下一步显式执行。
+          run_install: false
+          # 缓存 pnpm store，默认按根 pnpm-lock.yaml 生成缓存依据。
+          # 缓存只加速下载和复用，不能代替 pnpm install。
+          cache: true
+
+      - name: Install dependencies from lockfile
+        # 安装整个工作区的依赖，严格使用 lockfile；清单与锁文件不一致则失败。
+        # 即使 package.json 使用 latest，也不能在 CI 中随意改成新的解析版本。
+        run: pnpm install --frozen-lockfile
+
+      - name: Check types
+        # --filter 选择工作区中的 @badnpm/ui 包，执行其 tsc --noEmit 脚本。
+        # 包括源码、stories 和纳入 tsconfig 的开发配置，不产生编译产物。
+        run: pnpm --filter @badnpm/ui typecheck
+
+      - name: Lint UI package
+        # 执行 UI 包完整 ESLint 检查；发现错误时结束后续普通步骤。
+        run: pnpm --filter @badnpm/ui lint
+
+      - name: Install Chromium and system dependencies
+        # CI 虚拟机没有本机 macOS 的浏览器缓存，需要安装自己的 Linux 浏览器。
+        # Chromium 版本由已锁定的 Playwright 决定；--with-deps 同时安装系统依赖。
+        run: pnpm --filter @badnpm/ui exec playwright install --with-deps chromium
+
+      # 不需要先启动 Storybook 开发服务；Vitest 自行建立浏览器测试环境。
+      - name: Run component, interaction and accessibility tests with coverage
+        # id 供下方表达式读取该步骤的执行结果；它不是测试文件名称。
+        id: tests
+        # 执行一次后退出：运行 stories、play 断言、无障碍检查并生成 coverage/。
+        # a11y.test 为 error，违规会导致失败；未配置覆盖率阈值，低百分比不单独失败。
+        run: pnpm --filter @badnpm/ui test-storybook:coverage
+
+      - name: Upload coverage report
+        # 即使测试失败，只要有报告仍尝试保留；不存在报告时给出警告。
+        # cancelled() 判断运行是否被取消；outcome 读取 tests 的成功/失败/跳过状态。
+        # 此条件包含状态判断，允许前面的测试失败后继续上传，而不掩盖测试失败。
+        if: ${{ !cancelled() && steps.tests.outcome != 'skipped' }}
+        uses: actions/upload-artifact@v4
+        with:
+          # 附件名称，显示在本次 Actions 运行页面；下载解压后打开 index.html。
+          name: ui-coverage
+          # 从仓库根目录定位报告目录，不需要提交 Git，也不会自动变成公开网站。
+          path: packages/ui/coverage/
+          # 测试太早失败可能没有报告；只警告，原来的测试失败状态仍然保留。
+          if-no-files-found: warn
+          # 附件保存 7 天后过期，不影响仓库源码。
+          retention-days: 7
+
+      - name: Build Storybook
+        # 生成 storybook-static，检查 MDX、stories 与预览配置可以打包；不部署。
+        # 测试失败时，即使上面的报告上传成功，本步骤仍按默认成功条件跳过。
+        run: pnpm --filter @badnpm/ui build-storybook
+
+      - name: Build npm package
+        # 验证组件库的模块、类型声明及样式等发布产物可生成；不执行 npm publish。
+        run: pnpm --filter @badnpm/ui build
+
+# 所有步骤通过后 UI checks 显示成功；仅有此文件不会自动禁止合并失败的 PR。
+# 若需合并门禁，首次运行后在 GitHub Rulesets / 分支保护中要求 UI checks 必须通过。
