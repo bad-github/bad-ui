@@ -33,7 +33,7 @@ const externalPackages = Object.keys({ ...dependencies, ...peerDependencies });
 const fontDirectory = dirname(fileURLToPath(import.meta.resolve('@fontsource-variable/geist/index.css')));
 // 三个公开样式入口，省略 .css 后缀以复用为输入和输出路径。
 // 默认样式已包含主题和基础色；页面配色与字体由使用方按需引入。
-const cssEntries = ['styles/index', 'styles/body', 'styles/font/geist'];
+const cssEntries = ['styles/index', 'styles/custom', 'styles/font/geist'];
 
 // 配置加载时清理一次旧产物，避免已删除的源码文件仍残留在发布包中。
 // recursive 允许删除非空目录，force 允许目录不存在。

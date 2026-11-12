@@ -1,0 +1,36 @@
+@layer base {
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--muted-foreground);
+    border-radius: 9999px;
+    border: 1px solid transparent;
+    background-clip: content-box;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--accent-foreground);
+  }
+
+  /* 横纵滚动条交叉处 */
+  ::-webkit-scrollbar-corner {
+    background-color: transparent;
+  }
+
+  .hidden-scrollbar::-webkit-scrollbar {
+    /* scrollbar-width: none; */
+    width: 16px;
+    height: 16px;
+  }
+
+  .hidden-scrollbar::-webkit-scrollbar-track {
+    background: var(--primary);
+  }
+}

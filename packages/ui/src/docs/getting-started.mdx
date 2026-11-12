@@ -1,0 +1,151 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Documentation/Getting Started" />
+
+# 快速开始
+
+在已有的 React 应用中接入 `@badnpm/ui`，只需完成以下步骤：
+
+- **安装依赖**：添加组件库，确认 React 版本。
+- **引入样式**：加载组件样式，按需选择页面配色和字体。
+- **使用组件**：通过包入口导入组件。
+- **启用主题（可选）**：配置深浅模式切换。
+
+组件库提供预编译 CSS 和 TypeScript 类型声明，可直接在应用中使用。
+
+## 环境要求
+
+- **Node.js**：建议使用 `>=20.19.0`，与本项目声明的版本范围一致。
+- **pnpm**：使用 pnpm 时，建议使用本项目指定的 `11.25.0`。
+- **React / React DOM**：均为 `19.x`，二者版本应保持一致。
+- **构建工具**：支持处理 CSS 导入；下文示例使用 TypeScript 和 TSX。
+
+**版本说明**
+
+- Node.js 和 pnpm 版本为本项目的环境参考；组件库未单独声明 Node.js 的最低版本。
+- 包管理器任选 npm 或 pnpm，下方安装命令选择一种执行即可。
+
+## 安装组件库
+
+在应用目录中选择一种包管理器执行。
+
+**npm**
+
+```sh
+npm install @badnpm/ui
+```
+
+**pnpm**
+
+```sh
+pnpm add @badnpm/ui
+```
+
+### 检查 React 依赖
+
+- `react` 和 `react-dom` 是组件库的 peer dependencies，由应用提供。
+- 已安装匹配的 React 19 依赖时，可跳过此步。
+- 尚未安装时，执行以下命令（使用 pnpm 时将 `npm install` 替换为 `pnpm add`）：
+
+```sh
+npm install react@^19 react-dom@^19
+```
+
+## 引入样式
+
+### 必需：组件样式
+
+在应用入口统一引入一次：
+
+```tsx
+import '@badnpm/ui/styles/index.css';
+```
+
+- **包含内容**：组件工具类、主题变量和 Tailwind 重置。
+- **无需额外配置**：使用内置组件样式无需安装 Tailwind 或配置类名扫描。
+- **自定义类名**：应用新增的 Tailwind 类仍需由应用自行生成。
+
+> **注意：** JS 入口不会自动加载 CSS，请保留上述样式导入。
+
+### 可选：页面配色与字体
+
+根据需要添加页面配色、滚动条样式和字体：
+
+```tsx
+// 让 body 的背景色、文字色跟随主题，并应用滚动条样式。
+import '@badnpm/ui/styles/custom.css';
+// 加载包内的 Geist 字体，并设为默认无衬线字体。
+import '@badnpm/ui/styles/font/geist.css';
+```
+
+## 使用第一个组件
+
+在 `App.tsx` 中添加一个带标签的输入框和按钮：
+
+```tsx
+import { Button, Input } from '@badnpm/ui';
+
+export function App() {
+  return (
+    <main style={{ maxWidth: 360, margin: '48px auto', padding: 16 }}>
+      <label htmlFor="name">你的名字</label>
+      <Input id="name" name="name" placeholder="请输入名字" />
+      <Button type="button" style={{ marginTop: 16 }}>
+        开始使用
+      </Button>
+    </main>
+  );
+}
+```
+
+- **直接使用**：`Button` 和 `Input` 无需 Provider。
+- **可访问性**：输入框应始终有可访问名称，优先使用通过 `htmlFor` 和 `id` 关联的 `label`。
+
+## 启用主题切换（可选）
+
+在应用根部挂载 `ThemeProvider`，并在其内部使用 `ThemeToggle`：
+
+```tsx
+import { createRoot } from 'react-dom/client';
+import { ThemeProvider, ThemeToggle } from '@badnpm/ui';
+import '@badnpm/ui/styles/index.css';
+import '@badnpm/ui/styles/custom.css';
+import { App } from './App';
+
+createRoot(document.getElementById('root')!).render(
+  <ThemeProvider defaultTheme="system">
+    <ThemeToggle />
+    <App />
+  </ThemeProvider>
+);
+```
+
+**接入要点**
+
+- **挂载节点**：HTML 中需提供 `<div id="root"></div>`。
+- **默认模式**：`system` 跟随系统配色，也可设置为 `light` 或 `dark`。
+- **保存偏好**：用户切换后，选择会保存到 `localStorage` 的 `bad-ui:theme`。
+- **恢复顺序**：已有的有效保存值优先于 `defaultTheme`。
+
+## TypeScript 支持
+
+组件库内置类型声明，无需为 `@badnpm/ui` 安装额外的 `@types` 包。
+
+如果 TypeScript 提示 CSS 导入缺少类型声明，可任选一种方式处理：
+
+- 加载应用构建工具提供的 CSS 类型，例如 Vite 的 `vite/client`。
+- 在应用编译范围内的 `styles.d.ts` 中添加以下声明：
+
+```ts
+declare module '*.css' {}
+```
+
+## 下一步
+
+打开侧边栏 **Components → Input**，继续探索：
+
+- **组件属性**：了解支持的参数及其含义。
+- **使用示例**：查看默认、禁用、只读和错误状态。
+- **交互预览**：通过 Controls 调整属性，查看实际效果。
+
+> **提示：** 文档预览已配置样式和主题环境；在自己的应用中仍需完成上述接入步骤。

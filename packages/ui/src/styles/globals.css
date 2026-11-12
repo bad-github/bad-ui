@@ -1,7 +1,7 @@
 /*
  * 本文件由 Tailwind CSS v4 构建工具处理，包含原生 CSS 和 Tailwind 专用指令。
  * @import 用于加载其他样式文件；包名从依赖中解析，./ 开头的路径相对于本文件。
- * 页面 body 配色和 Geist 字体通过独立入口按需加载。
+ * 页面配色、滚动条和 Geist 字体通过独立入口按需加载。
  */
 /* 加载 Tailwind 默认主题、Preflight 全局重置及工具类生成入口，如 flex、px-2。 */
 @import "tailwindcss";
@@ -9,6 +9,8 @@
 @import "tw-animate-css";
 /* 加载 shadcn 的 Tailwind 扩展，包括 data-open 等状态变体、折叠动画和滚动效果工具类。 */
 @import "shadcn/tailwind.css";
+/* 加载 Base UI 组件的通用样式与动画，随默认组件样式一同提供。 */
+@import "./base-ui.css";
 /* 加载主题配色变量；各配色通过 data-theme 属性和 .dark 选择器匹配。 */
 @import "./themes/index.css";
 /* 加载基础色变量；data-base-color 控制基础色，默认 Neutral，与主题配色独立组合。 */

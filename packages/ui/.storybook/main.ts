@@ -8,8 +8,8 @@ import { themeStorageKeys } from './theme/storage-keys';
 const config: StorybookConfig = {
   // 使用 React 渲染器和 Vite 构建器，独立于组件库的 Rollup 发布构建。
   framework: '@storybook/react-vite',
-  // 相对于 .storybook 目录查找源码旁的 TS/TSX 示例。
-  stories: ['../src/**/*.stories.@(ts|tsx)'],
+  // 相对于 .storybook 目录查找独立文档和源码旁的 TS/TSX 示例。
+  stories: ['../src/**/*.mdx', '../src/**/*.stories.@(ts|tsx)'],
   // Docs 生成组件文档；a11y 提供浏览器中的无障碍检查面板。
   addons: ['@storybook/addon-docs', '@storybook/addon-a11y'],
   // 仅注入共享存储键对象，主题恢复逻辑保留在 preview-head.html 中。

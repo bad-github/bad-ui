@@ -1,0 +1,22 @@
+/* 按需添加类名启用 Base UI 组件动画。 */
+@layer components {
+  .CollapsibleContent {
+    /* Base UI 测量面板高度，并通过此变量提供展开时的目标高度。 */
+    height: var(--collapsible-panel-height);
+    overflow: hidden;
+    transition: height 300ms ease-out;
+  }
+
+  /* Base UI 在进入起始阶段和退出阶段添加对应属性，触发高度过渡。 */
+  .CollapsibleContent[data-starting-style],
+  .CollapsibleContent[data-ending-style] {
+    height: 0;
+  }
+
+  /* 浏览器根据系统的“减少动态效果”偏好关闭过渡。 */
+  @media (prefers-reduced-motion: reduce) {
+    .CollapsibleContent {
+      transition: none;
+    }
+  }
+}

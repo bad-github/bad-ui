@@ -5,7 +5,7 @@ import { withTheme } from './decorators/with-theme';
 import { ThemedDocsContainer } from './components/themed-docs-container';
 // 加载组件运行后的完整主题、页面配色和字体，保留 Vite 的样式热更新。
 import '../src/styles/index.css';
-import '../src/styles/body.css';
+import '../src/styles/custom.css';
 import '../src/styles/font/geist.css';
 
 const preview: Preview = {
@@ -29,8 +29,16 @@ const preview: Preview = {
     },
     // 预览背景跟随 UI 的 body 主题，避免独立背景控件与主题冲突。
     backgrounds: { disable: true },
-    // 按属性名推断颜色和日期控件，其余类型由组件信息或 argTypes 决定。
-    controls: { matchers: { color: /(background|color)$/i, date: /Date$/i } },
+    // 控制属性编辑器的行为，右侧 Controls 面板和 Docs 中的 Controls 表格都会使用。
+    controls: {
+      // 根据属性名称推断控件类型；具体属性仍可通过 argTypes 显式指定 control。
+      matchers: {
+        // 名称以 background 或 color 结尾时使用颜色选择器；i 表示忽略大小写。
+        color: /(background|color)$/i,
+        // 名称以 Date 结尾时使用日期选择器，例如 startDate。
+        date: /Date$/i,
+      },
+    },
   },
 };
 

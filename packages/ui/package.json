@@ -68,7 +68,7 @@
       "default": "./dist/esm/index.js"
     },
     "./styles/index.css": "./dist/styles/index.css",
-    "./styles/body.css": "./dist/styles/body.css",
+    "./styles/custom.css": "./dist/styles/custom.css",
     "./styles/font/geist.css": "./dist/styles/font/geist.css",
     "./globals.css": "./dist/styles/index.css"
   },

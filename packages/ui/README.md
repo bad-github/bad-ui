@@ -19,10 +19,10 @@ npm install @badnpm/ui react@^19 react-dom@^19
 | 样式入口                           | 用途                                        | 引入方式                     |
 | ---------------------------------- | ------------------------------------------- | ---------------------------- |
 | `@badnpm/ui/styles/index.css`      | Tailwind 重置、组件工具类、主题和基础色变量 | 使用内置组件样式时引入       |
-| `@badnpm/ui/styles/body.css`       | 将 `body` 背景色和文字色设为主题颜色        | 按需引入，与默认样式配合使用 |
+| `@badnpm/ui/styles/custom.css`     | 页面主题配色和滚动条样式                    | 按需引入，与默认样式配合使用 |
 | `@badnpm/ui/styles/font/geist.css` | 加载 Geist 字体，并设置默认无衬线字体       | 按需引入                     |
 
-仅引入默认样式即可使用组件。页面配色与字体可以分别选择，字体文件随包提供。
+仅引入默认样式即可使用组件。页面配色与滚动条作为一组可选样式，字体可以单独选择，字体文件随包提供。
 主题和基础色已包含在默认样式中。`@badnpm/ui/globals.css` 是默认样式的兼容入口，使用示例统一采用 `styles/index.css`。
 
 使用方无需安装 Tailwind、shadcn、tw-animate-css 或 Geist 字体包。
@@ -39,8 +39,8 @@ import { Button, ThemeProvider, ThemeToggle } from '@badnpm/ui';
 
 // 默认组件样式。
 import '@badnpm/ui/styles/index.css';
-// 可选，让整个页面的背景色、文字色跟随主题。
-import '@badnpm/ui/styles/body.css';
+// 可选，应用页面主题配色和滚动条样式。
+import '@badnpm/ui/styles/custom.css';
 // 可选，使用 Geist 字体。
 import '@badnpm/ui/styles/font/geist.css';
 
@@ -56,7 +56,7 @@ function App() {
 createRoot(document.getElementById('root')!).render(<App />);
 ```
 
-删除可选的 CSS 导入，即可由应用自行决定页面配色和字体。
+按需引入 custom.css 和字体入口，分别控制页面配色、滚动条和字体。
 `ThemeToggle` 通过 `ThemeProvider` 读取并切换深浅模式，单独使用 `Button`、`Input` 时可直接渲染。
 
 ## CommonJS
@@ -70,8 +70,8 @@ const { Button, ThemeProvider, ThemeToggle } = require('@badnpm/ui');
 
 // 这些 CSS require 由应用的打包器处理。
 require('@badnpm/ui/styles/index.css');
-// 可选页面配色。
-require('@badnpm/ui/styles/body.css');
+// 可选页面配色和滚动条样式。
+require('@badnpm/ui/styles/custom.css');
 // 可选字体。
 require('@badnpm/ui/styles/font/geist.css');
 
@@ -113,8 +113,8 @@ React 19 的浏览器加载示例采用 ESM CDN，并将 React 显式共享给 R
 
     <!-- 默认组件样式。 -->
     <link rel="stylesheet" href="/vendor/ui/styles/index.css" />
-    <!-- 可选，删除此行后由应用自行设置 body 配色。 -->
-    <link rel="stylesheet" href="/vendor/ui/styles/body.css" />
+    <!-- 可选，应用页面主题配色和滚动条样式。 -->
+    <link rel="stylesheet" href="/vendor/ui/styles/custom.css" />
     <!-- 可选，删除此行后使用应用自己的字体。 -->
     <link rel="stylesheet" href="/vendor/ui/styles/font/geist.css" />
 
@@ -186,7 +186,7 @@ dist/
 ├── types/               # 按源码结构生成的 ESM 类型声明
 ├── cjs/                 # CommonJS 模块，types 子目录提供逐文件类型声明
 ├── umd/index.js         # 浏览器单文件，导出 window.BadUI
-└── styles/              # 默认样式、可选 body 配色和字体资源
+└── styles/              # 默认样式、可选页面配色、滚动条和字体资源
 ```
 
 TypeScript 插件编译 JS，rollup-plugin-dts 配合 preserveModules 按源码目录逐文件生成类型声明。PostCSS 编译独立 CSS 并处理字体资源，样式规则集中在 `postcss.config.mjs`。
