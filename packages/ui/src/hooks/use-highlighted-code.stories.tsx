@@ -68,7 +68,7 @@ export const Default: Story = {
     await expect(canvas.getByRole('status')).toHaveTextContent('行数：1');
     await waitFor(async () => {
       await expect(canvas.getByLabelText('高亮结果').querySelector('[style]')).not.toBeNull();
-    });
+    }, { timeout: 10000 });
   },
 };
 
@@ -79,7 +79,7 @@ export const StreamingAndReplacement: Story = {
     const result = canvas.getByLabelText('高亮结果');
     await waitFor(async () => {
       await expect(result.querySelector('[style]')).not.toBeNull();
-    });
+    }, { timeout: 10000 });
     await userEvent.click(canvas.getByRole('button', { name: '追加一行' }));
     await expect(canvas.getByRole('status')).toHaveTextContent('行数：2');
     await expect(result).toHaveTextContent('console.log(answer);');

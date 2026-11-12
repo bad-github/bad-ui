@@ -10,7 +10,7 @@ function MobileExample() {
       <h2>useIsMobile</h2>
       <p role="status">当前视口：{isMobile ? '移动端' : '桌面端'}</p>
       <p>调整预览 iframe 的宽度：小于 768px 返回 true，768px 及以上返回 false。</p>
-      <p>判断依据是视口宽度，不是设备类型；首次渲染返回 false，挂载后更新。</p>
+      <p>判断依据是视口宽度，不是设备类型；服务端与水合首帧返回 false，客户端读取实际视口。</p>
     </section>
   );
 }

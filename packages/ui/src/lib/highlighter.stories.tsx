@@ -5,13 +5,16 @@ import { expect, waitFor } from 'storybook/test';
 import { highlightCode, loadHighlighter } from './highlighter';
 
 function HighlighterExample({ code, language, incremental }: { code: string; language: string; incremental: boolean }) {
+  // 输入变化时重建示例，立即显示加载状态，避免旧结果或错误残留。
+  return <HighlighterPreview key={JSON.stringify([code, language, incremental])} code={code} language={language} incremental={incremental} />;
+}
+
+function HighlighterPreview({ code, language, incremental }: { code: string; language: string; incremental: boolean }) {
   const [result, setResult] = useState<{ lines: ReactNode[]; supported: boolean } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    setResult(null);
-    setError(null);
 
     async function run() {
       if (!incremental) {
@@ -87,9 +90,10 @@ type Story = StoryObj<typeof meta>;
 
 const checkHighlight: NonNullable<Story['play']> = async ({ canvas }) => {
   if (!shouldRunInteractions) return;
+  // 首次加载 Shiki 和语言文件，在覆盖率或 CI 模式下可能超过默认的 1 秒。
   await waitFor(async () => {
     await expect(canvas.getByRole('status')).toHaveTextContent('高亮完成');
-  });
+  }, { timeout: 10000 });
   await expect(canvas.getByLabelText('高亮结果').querySelector('[style]')).not.toBeNull();
 };
 
