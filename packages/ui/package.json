@@ -10,6 +10,7 @@
     "build": "rollup -c",
     "storybook": "storybook dev -p 6006 --no-open",
     "build-storybook": "storybook build",
+    "preview-storybook": "vite preview --outDir storybook-static --port 6007",
     "test-storybook": "vitest run --project=storybook",
     "test-storybook:watch": "vitest --project=storybook",
     "test-storybook:coverage": "vitest run --project=storybook --coverage"
@@ -58,6 +59,7 @@
     "postcss-url": "^10.1.4",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
+    "remark-gfm": "^4.0.1",
     "rollup": "^4.68.2",
     "rollup-plugin-dts": "6.5.1",
     "rollup-plugin-postcss": "^4.0.2",

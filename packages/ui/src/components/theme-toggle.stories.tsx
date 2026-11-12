@@ -1,3 +1,4 @@
+import { shouldRunInteractions } from '../../.storybook/testing/interaction-mode';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, fn, waitFor } from 'storybook/test';
 import { ThemeToggle } from './theme-toggle';
@@ -39,6 +40,7 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
   play: async ({ canvas, userEvent, args, step }) => {
+    if (!shouldRunInteractions) return;
     await step('按钮名称随切换目标更新，点击回调和存储正常', async () => {
       await userEvent.click(canvas.getByRole('button', { name: '切换到深色主题' }));
       await expect(args.onClick).toHaveBeenCalled();
@@ -54,6 +56,7 @@ export const PreventToggle: Story = {
   // fn 包裹真实示例回调：既执行取消操作，又保留 Actions / 断言所需的调用记录。
   args: { onClick: fn((event: { preventDefault: () => void }) => event.preventDefault()) },
   play: async ({ canvas, userEvent, args }) => {
+    if (!shouldRunInteractions) return;
     await userEvent.click(canvas.getByRole('button', { name: '切换到深色主题' }));
     await expect(args.onClick).toHaveBeenCalled();
     await expect(canvas.getByRole('status')).toHaveTextContent('当前主题：light');
@@ -64,6 +67,7 @@ export const PreventToggle: Story = {
 export const Disabled: Story = {
   args: { disabled: true },
   play: async ({ canvas, args }) => {
+    if (!shouldRunInteractions) return;
     await expect(canvas.getByRole('button', { name: '切换到深色主题' })).toBeDisabled();
     await expect(canvas.getByRole('status')).toHaveTextContent('当前主题：light');
     await expect(args.onClick).not.toHaveBeenCalled();

@@ -1,3 +1,4 @@
+import { shouldRunInteractions } from '../../.storybook/testing/interaction-mode';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useEffect, useState, type ReactNode } from 'react';
 import { expect, waitFor } from 'storybook/test';
@@ -85,6 +86,7 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 const checkHighlight: NonNullable<Story['play']> = async ({ canvas }) => {
+  if (!shouldRunInteractions) return;
   await waitFor(async () => {
     await expect(canvas.getByRole('status')).toHaveTextContent('高亮完成');
   });
@@ -96,6 +98,7 @@ export const LanguageAlias: Story = { args: { language: 'TS' }, play: checkHighl
 export const Incremental: Story = {
   args: { incremental: true, code: '/* first line\nstill a comment */\nconst answer = 42;' },
   play: async (context) => {
+    if (!shouldRunInteractions) return;
     await checkHighlight(context);
     const highlighter = await loadHighlighter('typescript');
     if (!highlighter) throw new Error('TypeScript highlighter unavailable');
@@ -113,6 +116,7 @@ export const Ansi: Story = {
 export const UnsupportedLanguage: Story = {
   args: { language: 'unknown-language', code: 'Plain text fallback' },
   play: async ({ canvas }) => {
+    if (!shouldRunInteractions) return;
     await waitFor(async () => {
       await expect(canvas.getByRole('status')).toHaveTextContent('不支持此语言');
     });
@@ -124,6 +128,7 @@ export const UnsupportedLanguage: Story = {
 export const Empty: Story = {
   args: { code: '' },
   play: async ({ canvas }) => {
+    if (!shouldRunInteractions) return;
     await waitFor(async () => {
       await expect(canvas.getByRole('status')).toHaveTextContent('高亮完成');
     });

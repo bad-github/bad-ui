@@ -1,3 +1,4 @@
+import { shouldRunInteractions } from '../../.storybook/testing/interaction-mode';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect } from 'storybook/test';
 import { useHydrated } from './use-hydrated';
@@ -24,6 +25,7 @@ type Story = StoryObj<typeof meta>;
 
 export const ClientRendering: Story = {
   play: async ({ canvas }) => {
+    if (!shouldRunInteractions) return;
     await expect(canvas.getByRole('status')).toHaveTextContent('客户端已就绪：true');
   },
 };

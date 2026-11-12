@@ -1,3 +1,4 @@
+import { shouldRunInteractions } from '../../.storybook/testing/interaction-mode';
 // Meta 描述整个组件的公共配置；StoryObj 描述单个示例，二者只用于 TypeScript 类型检查。
 import type { Meta, StoryObj } from '@storybook/react-vite';
 // expect 用于断言实际结果；fn 创建可追踪调用记录的替身函数，不执行真实业务逻辑。
@@ -103,6 +104,7 @@ export const Default: Story = {
   // args：当前传给组件的 props，包含上面的替身回调；step：给一组操作命名。
   // 操作和断言都加 await，确保按顺序执行，并在 Interactions 面板中记录过程。
   play: async ({ canvas, userEvent, args, step }) => {
+    if (!shouldRunInteractions) return;
     // getByRole 按无障碍角色查找元素；普通文本输入框的隐含角色为 textbox。
     // name 是可访问名称，这里来自 aria-label，不是 input 的 name 属性或 placeholder。
     // 找不到或找到多个匹配元素时会报错，使测试及时暴露问题。
@@ -145,6 +147,7 @@ export const Default: Story = {
 export const Disabled: Story = {
   args: { disabled: true },
   play: async ({ canvas, userEvent, args, step }) => {
+    if (!shouldRunInteractions) return;
     const input = canvas.getByRole('textbox', { name: '示例输入框' });
 
     await step('禁用输入框不可输入，也不触发输入和焦点回调', async () => {
@@ -165,6 +168,7 @@ export const Disabled: Story = {
 export const ReadOnly: Story = {
   args: { readOnly: true, defaultValue: '只读内容' },
   play: async ({ canvas, userEvent, args, step }) => {
+    if (!shouldRunInteractions) return;
     const input = canvas.getByRole('textbox', { name: '示例输入框' });
 
     await step('只读输入框可聚焦，但输入和删除均不改变原值', async () => {
@@ -192,6 +196,7 @@ export const Invalid: Story = {
     </div>
   ),
   play: async ({ canvas, userEvent, args, step }) => {
+    if (!shouldRunInteractions) return;
     const input = canvas.getByRole('textbox', { name: '示例输入框' });
 
     await step('错误状态关联可见提示，仍允许用户修改内容', async () => {
@@ -221,6 +226,7 @@ export const WithLabel: Story = {
     </div>
   ),
   play: async ({ canvas, userEvent, step }) => {
+    if (!shouldRunInteractions) return;
     await step('点击可见标签将焦点交给对应输入框', async () => {
       // getByLabelText 会根据 label 关联找到输入框，不是找到 label 本身。
       const input = canvas.getByLabelText('姓名');
@@ -245,6 +251,7 @@ export const WithDescription: Story = {
     </div>
   ),
   play: async ({ canvas }) => {
+    if (!shouldRunInteractions) return;
     const input = canvas.getByRole('textbox', { name: '账号' });
     await expect(input).toHaveAccessibleDescription('用于登录，可填写常用账号。');
     // toHaveAttribute 验证属性确实透传到了 DOM，而不是仅存在于 args 对象中。
@@ -257,6 +264,7 @@ export const Controlled: Story = {
   parameters: { docs: { description: { story: '调用方用 useState 持有 value，并在 onChange 中同步更新。下方状态文字用于验证状态与输入一致。' } } },
   render: (args) => <ControlledInputExample {...args} />,
   play: async ({ canvas, userEvent, args, step }) => {
+    if (!shouldRunInteractions) return;
     const input = canvas.getByRole('textbox', { name: '示例输入框' });
     await step('受控输入将新值同步到调用方状态', async () => {
       await expect(input).toHaveValue('初始内容');
@@ -273,6 +281,7 @@ export const WithDefaultValue: Story = {
   args: { defaultValue: '初始内容' },
   parameters: { docs: { description: { story: '非受控输入只设置 defaultValue，之后由 DOM 管理当前值；不要同时传 value。' } } },
   play: async ({ canvas, userEvent, args }) => {
+    if (!shouldRunInteractions) return;
     const input = canvas.getByRole('textbox', { name: '示例输入框' });
     await expect(input).toHaveValue('初始内容');
     await userEvent.clear(input);
@@ -286,6 +295,7 @@ export const Required: Story = {
   args: { required: true, 'aria-label': '姓名（必填）' },
   parameters: { docs: { description: { story: 'required 使用浏览器原生校验：空值无效，填写后有效。Input 不会自动生成业务错误提示。' } } },
   play: async ({ canvas, userEvent, step }) => {
+    if (!shouldRunInteractions) return;
     const input = canvas.getByRole('textbox', { name: '姓名（必填）' });
     await step('必填输入框从空值无效变为填写后有效', async () => {
       await expect(input).toBeRequired();
@@ -301,6 +311,7 @@ export const MaxLength: Story = {
   args: { maxLength: 5, placeholder: '最多输入 5 个英文字母' },
   parameters: { docs: { description: { story: 'maxLength 限制文本输入；按 UTF-16 码元计数，不一定等于用户感知的字符数。此例使用英文字母避免歧义。' } } },
   play: async ({ canvas, userEvent, args }) => {
+    if (!shouldRunInteractions) return;
     const input = canvas.getByRole('textbox', { name: '示例输入框' });
     await userEvent.type(input, 'abcdefg');
     await expect(input).toHaveValue('abcde');
@@ -312,6 +323,7 @@ export const Email: Story = {
   args: { type: 'email', name: 'email', autoComplete: 'email', 'aria-label': '邮箱', placeholder: 'name@example.com' },
   parameters: { docs: { description: { story: 'type="email" 使用浏览器原生邮箱格式校验；格式正确不代表地址真实存在。' } } },
   play: async ({ canvas, userEvent, step }) => {
+    if (!shouldRunInteractions) return;
     const input = canvas.getByRole('textbox', { name: '邮箱' });
     await step('邮箱格式从无效变为有效', async () => {
       await userEvent.type(input, 'invalid-email');
@@ -328,6 +340,7 @@ export const Password: Story = {
   args: { type: 'password', autoComplete: 'new-password', 'aria-label': '密码', placeholder: '请输入密码' },
   parameters: { docs: { description: { story: '密码类型由浏览器遮蔽显示，但 JavaScript 仍可读取真实值；遮蔽不等于加密。测试只使用虚构密码。' } } },
   play: async ({ canvas, userEvent }) => {
+    if (!shouldRunInteractions) return;
     // password 没有隐含 textbox 角色，通过可访问名称查找。
     const input = canvas.getByLabelText('密码');
     await expect(input).toHaveAttribute('type', 'password');
@@ -340,6 +353,7 @@ export const Number: Story = {
   args: { type: 'number', min: 1, max: 10, step: 1, 'aria-label': '数量', placeholder: '1 到 10' },
   parameters: { docs: { description: { story: '数值输入的角色为 spinbutton。min / max 定义有效范围，不保证阻止输入超限值；事件里的 value 仍是字符串。' } } },
   play: async ({ canvas, userEvent, step }) => {
+    if (!shouldRunInteractions) return;
     const input = canvas.getByRole('spinbutton', { name: '数量' });
     await step('数值范围约束允许输入，但标记超限值无效', async () => {
       await userEvent.type(input, '11');

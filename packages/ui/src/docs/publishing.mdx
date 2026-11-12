@@ -1,0 +1,193 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Development/Publishing" />
+
+# 发布指南
+
+本文按当前仓库结构说明手动发布流程，供首次发布前审阅。部署平台、域名和首发版本尚未确定，文中的 `0.1.0`、`0.1.0-beta.0` 均为示例。
+
+| 发布内容 | 使用方式 | 构建产物 |
+| --- | --- | --- |
+| Storybook 站点 | 通过网址浏览文档、体验组件 | `packages/ui/storybook-static/` |
+| npm 组件包 `@badnpm/ui` | 在 React 应用中安装、导入组件 | `packages/ui/dist/` |
+
+两者独立发布。发布 Storybook 不会上传 npm 包，发布 npm 包也不会部署文档网站。可以先上线 Storybook 收集反馈，再发布组件包。
+
+## 发布前准备
+
+以下命令默认在**仓库根目录**执行；需要进入其他目录的步骤会明确标注。
+
+```sh
+pnpm install --frozen-lockfile
+pnpm --filter @badnpm/ui typecheck
+pnpm --filter @badnpm/ui lint
+pnpm --filter @badnpm/ui test-storybook
+```
+
+- 使用根目录 `package.json` 指定的 pnpm 版本；Node.js 同时满足项目及当前 Vite 的版本要求。
+- 浏览器测试需要已安装 Playwright Chromium；若缺少浏览器，可执行 `pnpm --filter @badnpm/ui exec playwright install chromium`。
+- 当前普通 Storybook 预览关闭自动交互，`test-storybook` 的 test 模式仍执行交互测试。
+- 先确认本次准备公开的组件、导出和文档范围。没有 Story 的组件仍可能通过根入口进入 npm 包，Story 覆盖范围不是包的发布范围。
+
+## 一、发布 Storybook
+
+### 1. 生成静态站点
+
+```sh
+pnpm --filter @badnpm/ui build-storybook
+```
+
+输出目录为 `packages/ui/storybook-static/`，包含完整文档、示例和网站资源。它可以由静态网站托管服务或自己的 Web 服务器提供访问。[Storybook 官方发布说明](https://storybook.js.org/docs/sharing/publish-storybook)
+
+### 2. 本地预览构建结果
+
+在仓库根目录执行：
+
+```sh
+pnpm --filter @badnpm/ui preview-storybook
+```
+
+该脚本使用 Vite 提供静态预览，读取 `packages/ui/storybook-static/`，默认端口为 `6007`；端口占用时以终端显示的实际地址为准。它不会重新构建，修改 Story 或文档后，需要先重新运行 `build-storybook` 才能在预览中看到更新。
+
+打开终端显示的地址，确认以下内容：
+
+- Development、Design 和组件菜单均可打开，刷新后仍正常显示。
+- 组件样式、字体、图片及深浅主题正常。
+- 手动点击组件时行为正常，进入示例不会自动执行交互测试。
+- 窄屏可浏览内容，没有影响操作的横向溢出。
+
+本地开发服务器正常，不代表静态构建已经验证；以此步骤看到的产物为准。
+
+### 3. 部署到托管平台
+
+若选择 Vercel、Netlify 等支持自定义构建命令的服务，可按下表配置。表中的路径以**仓库根目录**为基准，不要同时将平台 Root Directory 改为 `packages/ui`。
+
+| 配置项 | 值 |
+| --- | --- |
+| 项目根目录 | 仓库根目录 |
+| 安装命令 | `pnpm install --frozen-lockfile` |
+| 构建命令 | `pnpm --filter @badnpm/ui build-storybook` |
+| 输出目录 | `packages/ui/storybook-static` |
+| 站点类型 | 静态站点；平台需要时选择 Other / 自定义 |
+
+如果使用自己的服务器，上传 `storybook-static` **目录内的全部内容**到网站根目录，并保留文件之间的相对路径。无需在服务器运行 Storybook 开发进程。
+
+也可以使用专为 Storybook 提供托管和评审功能的 Chromatic；它有自己的账号、项目配置和发布流程，见[官方接入步骤](https://storybook.js.org/docs/sharing/publish-storybook#publish-storybook-with-chromatic)。本文尚未为仓库接入任何托管服务或 CI 自动部署。
+
+### 4. 上线后检查
+
+用实际线上地址重新打开文档和组件示例，检查刷新、资源加载及主题切换。若部署在 `/ui/` 等子路径下，还需验证站点资源路径，不能直接假定网站根目录部署配置适用。
+
+Storybook Guide 中的 **Mark as complete** 只是完成引导标记；应在实际部署成功后手动标记。
+
+## 二、发布 npm 组件包
+
+### 1. 确认包名、权限和版本
+
+当前待发布包的配置位于 `packages/ui/package.json`：
+
+- 包名为 `@badnpm/ui`，当前版本为 `0.0.0`。
+- 仓库根包设为 `private: true`；实际组件包没有设置 `private: true`。发布操作应在组件包目录执行。
+- 需要拥有 npm 上 `@badnpm` scope 的发布权限；本地使用这个名字不代表已获得线上权限。
+- 组件包使用 `files: ["dist"]` 选择发布产物；npm 还会自动包含包清单、README 和许可证等文件。
+- 目前没有配置 `prepublishOnly` 自动构建，因此必须先手动构建，防止上传缺失或过期产物。
+
+在 `packages/ui/package.json` 中设置本次版本，并在 `packages/ui/src/docs/changelog/` 中新增或更新本次发布日期的 MDX 文档。若发布仍在完善中的首版，可使用下文的 beta 流程。
+
+注意：`packages/ui/README.md` 中仍有“当前包标记为 private”的旧说明，与现有包配置不一致，正式发布前应同步修订。此指南仅记录现状，不代表已完成发布检查。
+
+### 2. 构建并检查包内容
+
+```sh
+pnpm --filter @badnpm/ui build
+```
+
+构建后应包含以下入口及它们引用的模块、样式和字体资源：
+
+```text
+packages/ui/dist/
+├── esm/index.js             # ESM
+├── types/index.d.ts         # ESM 类型声明
+├── cjs/index.cjs            # CommonJS
+├── cjs/types/index.d.ts     # CommonJS 类型声明
+├── umd/index.js             # 浏览器单文件
+└── styles/
+    ├── index.css
+    ├── custom.css
+    └── font/geist.css
+```
+
+然后进入组件包目录，预览将要上传的文件清单：
+
+```sh
+cd packages/ui
+npm pack --dry-run
+```
+
+确认构建入口真实存在，样式和字体文件齐全，没有混入 Stories、Storybook 站点或其他非预期文件。`--dry-run` 用于查看打包清单，不会上传 npm。[npm 发布与包文件规则](https://docs.npmjs.com/cli/v11/commands/npm-publish/)
+
+### 3. 用本地安装包验证
+
+仍在 `packages/ui` 目录执行：
+
+```sh
+npm pack --pack-destination /tmp
+```
+
+命令会输出生成的 `.tgz` 文件名。在仓库之外的 React 19 测试应用中安装该文件，避免工作区源码别名掩盖发布产物的问题：
+
+```sh
+# 把示例路径替换成上一步输出的真实文件路径。
+npm install /tmp/badnpm-ui-0.1.0.tgz
+```
+
+在测试应用中确认可以从包入口导入组件，并显式引入 CSS：
+
+```tsx
+import { Button } from '@badnpm/ui';
+import '@badnpm/ui/styles/index.css';
+
+export function App() {
+  return <Button>发布验证</Button>;
+}
+```
+
+运行应用的类型检查和生产构建，并在浏览器查看组件。若使用可选的 `custom.css` 或 `font/geist.css`，也应检查相应样式和字体是否加载成功。
+
+### 4. 登录并正式发布
+
+以下命令会进行账号认证及真实上传；请在版本和产物确认后执行。工作目录仍是 `packages/ui`。
+
+```sh
+npm login --registry=https://registry.npmjs.org/
+npm whoami --registry=https://registry.npmjs.org/
+npm publish --access public --registry=https://registry.npmjs.org/
+```
+
+`@badnpm/ui` 是带 scope 的包，首次公开发布时显式使用 `--access public`。认证及双因素验证按 npm 当前提示完成。[npm scoped public package 指南](https://docs.npmjs.com/creating-and-publishing-scoped-public-packages/)
+
+发布后可以在任意目录查询版本；下面使用示例版本号，执行时需替换：
+
+```sh
+npm view @badnpm/ui@0.1.0 version --registry=https://registry.npmjs.org/
+```
+
+再从 npm 安装该确切版本，复查安装、组件导入、CSS 和类型声明。
+
+## 三、预发布与后续更新
+
+### 先发布 beta
+
+如果本次主要用于试用，在 `packages/ui/package.json` 中将版本设为例如 `0.1.0-beta.0`，重新构建、打包并验证后，在组件包目录执行：
+
+```sh
+npm publish --access public --tag beta --registry=https://registry.npmjs.org/
+```
+
+使用者通过 `npm install @badnpm/ui@beta` 安装。beta 使用独立的 dist-tag；不要省略 `--tag beta`，以免预发布版本成为默认安装版本。[npm dist-tag 说明](https://docs.npmjs.com/adding-dist-tags-to-packages)
+
+### 发布正式版或修订版
+
+每次更新都使用新版本号，重复“更新版本与日志 → 构建 → 打包验证 → 发布”的流程。同一个包名和版本号不能重复上传覆盖；已发布版本有问题时，应修复后发布新版本。[npm publish 说明](https://docs.npmjs.com/cli/v11/commands/npm-publish/)
+
+Storybook 的部署与包版本分别管理。发布包后，同步部署对应文档，并在 Changelog 中记录版本及实际发布范围，方便使用者核对。

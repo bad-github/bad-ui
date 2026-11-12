@@ -1,3 +1,4 @@
+import { shouldRunInteractions } from '../../.storybook/testing/interaction-mode';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, waitFor } from 'storybook/test';
 import { PreferenceProvider, usePreference } from './preference-provider';
@@ -56,6 +57,7 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
   play: async ({ canvas, userEvent, step }) => {
+    if (!shouldRunInteractions) return;
     const root = canvas.getByRole('status').ownerDocument.documentElement;
     await step('修改外观，同步 Context、根节点和存储', async () => {
       await waitFor(() => expect(root).toHaveAttribute('data-base-color', 'neutral'));
@@ -83,6 +85,7 @@ export const CustomDefaults: Story = {
   args: { defaultPreference: { theme: 'blue', radius: 1 } },
   parameters: { docs: { description: { story: '只指定配色与圆角，基础色自动补齐为 neutral。' } } },
   play: async ({ canvas }) => {
+    if (!shouldRunInteractions) return;
     await expect(canvas.getByRole('status')).toHaveTextContent('基础色：neutral；配色：blue；圆角：1rem');
   },
 };
@@ -95,6 +98,7 @@ export const SavedPreference: Story = {
     docs: { description: { story: '逐项验证已保存偏好：有效基础色恢复，非法配色和圆角使用对应默认值。' } },
   },
   play: async ({ canvas }) => {
+    if (!shouldRunInteractions) return;
     await waitFor(() => expect(canvas.getByRole('status')).toHaveTextContent('基础色：zinc；配色：blue；圆角：0.625rem'));
   },
 };
@@ -105,6 +109,7 @@ export const CorruptedStorage: Story = {
     docs: { description: { story: '存储不是有效 JSON 时整体回退，避免异常阻断渲染。' } },
   },
   play: async ({ canvas }) => {
+    if (!shouldRunInteractions) return;
     await expect(canvas.getByRole('status')).toHaveTextContent('基础色：neutral；配色：neutral；圆角：0.625rem');
   },
 };
@@ -112,6 +117,7 @@ export const CorruptedStorage: Story = {
 export const StorageReadFailure: Story = {
   parameters: { storageFailure: 'getItem', docs: { description: { story: '存储读取被拒绝时仍展示默认偏好。' } } },
   play: async ({ canvas }) => {
+    if (!shouldRunInteractions) return;
     await expect(canvas.getByRole('status')).toHaveTextContent('基础色：neutral；配色：neutral；圆角：0.625rem');
   },
 };
@@ -119,6 +125,7 @@ export const StorageReadFailure: Story = {
 export const StorageWriteFailure: Story = {
   parameters: { storageFailure: 'setItem', docs: { description: { story: '保存失败不影响当前页面的偏好更新。' } } },
   play: async ({ canvas, userEvent }) => {
+    if (!shouldRunInteractions) return;
     await userEvent.click(canvas.getByRole('button', { name: '圆角 1rem' }));
     await expect(canvas.getByRole('status')).toHaveTextContent('圆角：1rem');
     await expect(localStorage.getItem(storageKey)).toBeNull();
@@ -128,6 +135,7 @@ export const StorageWriteFailure: Story = {
 export const StorageSync: Story = {
   parameters: { docs: { description: { story: '模拟跨标签页更新、无关键过滤、删除与清空通知。同步只更新页面，不向存储反写。' } } },
   play: async ({ canvas, step }) => {
+    if (!shouldRunInteractions) return;
     const status = canvas.getByRole('status');
     const saved = JSON.stringify({ baseColor: 'zinc', theme: 'blue', radius: 1 });
     await step('更新后同步偏好，删除或清空后恢复默认', async () => {

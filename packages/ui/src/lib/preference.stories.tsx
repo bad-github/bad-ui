@@ -1,3 +1,4 @@
+import { shouldRunInteractions } from '../../.storybook/testing/interaction-mode';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect } from 'storybook/test';
 import { BASE_COLORS, COLOR_THEMES, DEFAULT_PREFERENCE, RADIUS_OPTIONS } from './preference';
@@ -98,6 +99,7 @@ type Story = StoryObj<typeof meta>;
 
 export const Catalog: Story = {
   play: async ({ canvas }) => {
+    if (!shouldRunInteractions) return;
     await expect(canvas.getByRole('list', { name: '基础色预设' })).toHaveTextContent('Neutral');
     // 检查默认偏好引用了真实选项，防止预设调整后默认值指向失效选项。
     await expect(BASE_COLORS.some((item) => item.value === DEFAULT_PREFERENCE.baseColor)).toBe(true);

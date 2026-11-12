@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import type { StorybookConfig } from '@storybook/react-vite';
 import { mergeConfig } from 'vite';
 import tailwindcss from '@tailwindcss/postcss';
+import remarkGfm from 'remark-gfm';
 import { themeStorageKeys } from './theme/storage-keys';
 
 const config: StorybookConfig = {
@@ -12,7 +13,17 @@ const config: StorybookConfig = {
   stories: ['../src/**/*.mdx', '../src/**/*.stories.@(ts|tsx)'],
   // Docs 生成组件文档；a11y 提供浏览器中的无障碍检查面板。
   addons: [
-    '@storybook/addon-docs',
+    {
+      name: '@storybook/addon-docs',
+      options: {
+        mdxPluginOptions: {
+          mdxCompileOptions: {
+            // MDX 默认不解析 GFM 表格；为所有文档启用表格语法。
+            remarkPlugins: [remarkGfm],
+          },
+        },
+      },
+    },
     '@storybook/addon-a11y',
     '@storybook/addon-vitest'
   ],

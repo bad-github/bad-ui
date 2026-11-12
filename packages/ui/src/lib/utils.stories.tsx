@@ -1,3 +1,4 @@
+import { shouldRunInteractions } from '../../.storybook/testing/interaction-mode';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect } from 'storybook/test';
 import { cn } from './utils';
@@ -22,6 +23,7 @@ type Story = StoryObj<typeof meta>;
 
 export const ClassNames: Story = {
   play: async ({ canvas }) => {
+    if (!shouldRunInteractions) return;
     await expect(canvas.getByLabelText('类名组合结果')).toHaveTextContent('flex gap-2');
   },
 };

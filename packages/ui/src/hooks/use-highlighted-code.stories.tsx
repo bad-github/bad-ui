@@ -1,3 +1,4 @@
+import { shouldRunInteractions } from '../../.storybook/testing/interaction-mode';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useState } from 'react';
 import { expect, waitFor } from 'storybook/test';
@@ -63,6 +64,7 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
   play: async ({ canvas }) => {
+    if (!shouldRunInteractions) return;
     await expect(canvas.getByRole('status')).toHaveTextContent('行数：1');
     await waitFor(async () => {
       await expect(canvas.getByLabelText('高亮结果').querySelector('[style]')).not.toBeNull();
@@ -73,6 +75,7 @@ export const Default: Story = {
 export const StreamingAndReplacement: Story = {
   args: { code: 'const answer = 42;' },
   play: async ({ canvas, userEvent }) => {
+    if (!shouldRunInteractions) return;
     const result = canvas.getByLabelText('高亮结果');
     await waitFor(async () => {
       await expect(result.querySelector('[style]')).not.toBeNull();
@@ -92,6 +95,7 @@ export const StreamingAndReplacement: Story = {
 export const UnsupportedLanguage: Story = {
   args: { language: 'unknown-language', code: 'Plain text\nSecond line' },
   play: async ({ canvas }) => {
+    if (!shouldRunInteractions) return;
     await expect(canvas.getByLabelText('高亮结果')).toHaveTextContent('Plain text');
     await expect(canvas.getByRole('status')).toHaveTextContent('行数：2');
   },

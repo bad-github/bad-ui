@@ -38,6 +38,12 @@ const preview: SortedPreview = {
             if (rank) return rank;
           }
           const order = left[index].localeCompare(right[index], 'en');
+          // 更新日志按发布日期倒序排列，其他分组保留字母排序。
+          if (
+            index === 2 && left[0] === 'Development' && right[0] === 'Development' &&
+            left[1] === 'Changelog' && right[1] === 'Changelog' &&
+            /^\d{4}-\d{2}-\d{2}$/.test(left[index]) && /^\d{4}-\d{2}-\d{2}$/.test(right[index])
+          ) return -order;
           if (order) return order;
         }
         // 同组 Docs 固定置顶，其他示例按显示名称的英文字母顺序排列。

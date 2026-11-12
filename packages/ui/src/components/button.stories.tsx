@@ -1,3 +1,4 @@
+import { shouldRunInteractions } from '../../.storybook/testing/interaction-mode';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, fn } from 'storybook/test';
 import { PlusIcon } from 'lucide-react';
@@ -31,6 +32,7 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
   play: async ({ canvas, userEvent, args, step }) => {
+    if (!shouldRunInteractions) return;
     const button = canvas.getByRole('button', { name: '保存' });
     await step('支持鼠标点击、Enter 和 Space 激活', async () => {
       await userEvent.click(button);
@@ -51,6 +53,7 @@ export const Variants: Story = {
     </div>
   ),
   play: async ({ canvas, userEvent, args }) => {
+    if (!shouldRunInteractions) return;
     // 按每个样式的名称查找，避免把预览工具栏中的主题切换按钮计入测试。
     for (const variant of variants) {
       await userEvent.click(canvas.getByRole('button', { name: variant }));
@@ -77,6 +80,7 @@ export const Disabled: Story = {
     </div>
   ),
   play: async ({ canvas, userEvent, args, step }) => {
+    if (!shouldRunInteractions) return;
     const disabled = canvas.getByRole('button', { name: '保存' });
     await step('禁用按钮被 Tab 跳过，不触发点击回调', async () => {
       await expect(disabled).toBeDisabled();
@@ -101,6 +105,7 @@ export const IconButtons: Story = {
     </div>
   ),
   play: async ({ canvas, userEvent, args }) => {
+    if (!shouldRunInteractions) return;
     for (const size of iconSizes) {
       await userEvent.click(canvas.getByRole('button', { name: `添加项目 ${size}` }));
     }
@@ -115,6 +120,7 @@ export const FunctionClassName: Story = {
   },
   parameters: { docs: { description: { story: '展示函数形式的 className：读取 Base UI 状态并返回额外类名，覆盖此前未执行的函数分支。' } } },
   play: async ({ canvas, userEvent, args }) => {
+    if (!shouldRunInteractions) return;
     const button = canvas.getByRole('button', { name: '保存' });
     await expect(button).toHaveClass('min-w-32');
     // 同时确认组合后仍保留组件标记与点击能力，而非只检查类名存在。

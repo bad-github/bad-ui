@@ -1,3 +1,4 @@
+import { shouldRunInteractions } from '../../.storybook/testing/interaction-mode';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, waitFor } from 'storybook/test';
 import { useIsMobile } from './use-mobile';
@@ -30,6 +31,7 @@ type Story = StoryObj<typeof meta>;
 
 export const Responsive: Story = {
   play: async ({ canvas, canvasElement }) => {
+    if (!shouldRunInteractions) return;
     // 从示例自身的 iframe 读取宽度，避免误用 Storybook 管理页面的视口。
     const view = canvasElement.ownerDocument.defaultView!;
     await waitFor(async () => {

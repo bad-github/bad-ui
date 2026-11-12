@@ -1,0 +1,58 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Development/Changelog/2026-11-12" />
+
+# 2026-11-12 · 首次文档站预发布
+
+本次准备首次公开组件库的 Storybook 文档和交互示例，供浏览、试用及反馈。
+
+**发布状态：待部署。** 计划将仓库上传 GitHub，并通过 Vercel 关联仓库部署 Storybook。此记录描述本次准备发布的内容，不代表线上部署或 npm 发布已经完成。
+
+## 组件与示例
+
+- 集成 shadcn Base UI 组件，补齐组件、Hooks 和工具函数的公共导出，可通过 `@badnpm/ui` 根入口使用。
+- 完成 A 开头组件的文档与示例：Accordion、Alert、AlertDialog、AspectRatio、Attachment、Avatar。
+- Accordion 展示默认展开、多项展开、受控状态、禁用及键盘操作。
+- Alert 展示普通与危险提示、图标、操作按钮及长内容；AlertDialog 展示确认、取消、尺寸、图标和焦点交互。
+- AspectRatio 展示常用比例和图片裁切；Attachment 展示上传状态、尺寸、横竖布局、图片、移除、重试及附件组。
+- Avatar 展示图片、加载失败回退、尺寸、状态标记和头像组。
+- 提供 Button、Input 和 ThemeToggle 的现有示例，便于检查常用控件和主题切换。
+
+## 主题与外观
+
+- 支持浅色、深色及跟随系统的主题模式。
+- 提供 Neutral、Mist、Zinc 三种基础色，以及 Neutral、Blue、Green、Orange、Pink、Purple、Red、Rose、Sky、Yellow 十种主题配色。
+- 支持圆角偏好配置，并通过 PreferenceProvider 管理外观偏好。
+- Preference 文档以真实色块展示配色，以形状展示圆角，并标识默认选项。
+
+## Hooks 与工具
+
+- 补充 `useHydrated`、`useIsMobile` 和 `useHighlightedCode` 的使用示例。
+- 代码高亮示例覆盖语言别名、逐行处理、ANSI、空内容及不支持语言时的纯文本回退。
+- 提供类名组合工具和偏好预设目录，便于了解公共工具入口。
+
+## 文档与浏览体验
+
+- 整理 Development 与 Design 文档，包含 Vite / Next.js 接入、样式、字体、主题、图标、外观偏好及发布指南。
+- 文档与示例统一接入预览主题；每组 Docs 置顶，其余示例按字母排序。
+- 普通浏览时暂停自动交互测试，进入示例不会自动点击、输入或切换状态；仍可手动操作组件。
+- 启用 Markdown 表格解析，修复发布指南等文档中表格显示为普通文字的问题。
+- 更新日志按发布日期分组，每次发布新增独立日期页面，最新日期优先显示。
+
+## 修复
+
+- 修复 Storybook 排序函数包含 TypeScript 类型标注时的启动错误。
+- 提高附件错误说明的文字对比度。
+- 为示例中的头像状态标记补充可访问语义，并让附件横向滚动区支持键盘访问。
+
+## 构建与发布准备
+
+- Storybook 支持静态构建和本地预览，分别使用 `build-storybook`、`preview-storybook`。
+- 组件库配置 ESM、CommonJS、UMD、TypeScript 类型声明和独立 CSS 产物；样式、页面配色及 Geist 字体提供独立入口。
+- 发布指南涵盖 Storybook 部署、npm 包打包验证、公开发布、beta 预发布和版本更新。
+- 本次准备阶段，A 组 43 项 Storybook 浏览器测试、类型检查及 Storybook 静态构建已通过。
+
+## 本次发布范围
+
+- **当前组件包版本仍为 `0.0.0`，本次尚未发布 npm 包。** Storybook 上线与 npm 发版分别管理。
+- 已集成组件不代表都已完成文档和测试，本次主要完善 A 组。
