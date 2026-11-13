@@ -29,6 +29,10 @@ export default defineConfig({
     projects: [
       {
         extends: true,
+        // 提前预构建已出现延迟发现的依赖，避免首次加载 Story 时刷新测试页面。
+        optimizeDeps: {
+          include: ['@base-ui/react/switch', 'input-otp', '@base-ui/react/menubar', '@shadcn/react/message-scroller'],
+        },
         plugins: [
           // The plugin will run tests for the stories defined in your Storybook config
           // See options at: https://storybook.js.org/docs/next/writing-tests/integrations/vitest-addon#storybooktest

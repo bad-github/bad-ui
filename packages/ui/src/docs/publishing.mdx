@@ -26,7 +26,7 @@ pnpm --filter @badnpm/ui test-storybook
 
 - 使用根目录 `package.json` 指定的 pnpm 版本；Node.js 同时满足项目及当前 Vite 的版本要求。
 - 浏览器测试需要已安装 Playwright Chromium；若缺少浏览器，可执行 `pnpm --filter @badnpm/ui exec playwright install chromium`。
-- 当前普通 Storybook 预览关闭自动交互，`test-storybook` 的 test 模式仍执行交互测试。
+- 普通 Storybook 预览默认关闭自动交互。按需设置 `VITE_STORYBOOK_INTERACTIONS=true` 开启：本地写入 `packages/ui/.env.local` 后重启 Storybook；线上在部署平台设置后重新构建部署。设为 `false` 或不配置则关闭；`test-storybook` 的 test 模式始终执行交互测试。
 - 先确认本次准备公开的组件、导出和文档范围。没有 Story 的组件仍可能通过根入口进入 npm 包，Story 覆盖范围不是包的发布范围。
 
 ## 一、发布 Storybook

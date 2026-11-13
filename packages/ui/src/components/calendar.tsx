@@ -164,13 +164,13 @@ function Calendar({
         DayButton: ({ ...props }) => (
           <CalendarDayButton locale={locale} {...props} />
         ),
-        WeekNumber: ({ children, ...props }) => {
+        WeekNumber: ({ children, week, ...props }) => {
           return (
-            <td {...props}>
+            <th {...props} data-week-number={week.weekNumber}>
               <div className="flex size-(--cell-size) items-center justify-center text-center">
                 {children}
               </div>
-            </td>
+            </th>
           )
         },
         ...components,

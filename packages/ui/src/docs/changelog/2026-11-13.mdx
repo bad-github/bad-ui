@@ -1,0 +1,44 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Development/Changelog/2026-11-13" />
+
+# 2026-11-13 · 扩充组件示例与交互配置
+
+## 新增
+
+- 补充 B 组示例：Badge、Breadcrumb、Bubble、ButtonGroup。
+- 补充 C 组示例：Calendar、Card、Carousel、Chart、Checkbox、CodeBlock、Collapsible、Combobox、Command、ContextMenu。
+- 补充 D 组示例：DatePicker、Dialog、Direction、Drawer、DropdownMenu。
+- 补充 E、F、H 组示例：Empty、Field、HoverCard。
+- 补充 I 组示例：InputGroup、InputOTP、Item；保留已有 Input 示例。
+- 补充 K、L 组示例：Kbd、Label。
+- 补充 M 组示例：Marker、Menubar、Message、MessageScroller。
+
+## 示例改进
+
+- Calendar 增加日期范围、多选、必选、预约窗口、禁选日期、数量限制、周数、语言及受控月份等示例。
+- DatePicker 增加默认值、清空、禁用周末、预约窗口、快捷预设、日期与时间、必填表单和日期范围等示例。
+- InputGroup 展示搜索、地址前缀、金额、密码显隐和多行输入；InputOTP 展示位数、分隔、字符限制及校验状态。
+- Menubar 展示复选、单选、子菜单和键盘导航；Message 展示消息对齐、分组、头像及收藏操作。
+- MessageScroller 展示初始定位、滚动按钮、追加消息、加载历史和手动追加流式回复片段；演示内容由按钮触发，不会在浏览时自动生成。
+- 新增示例沿用自动文档、主题预览、交互测试和无障碍检查；各组 Docs 置顶，其余示例按字母排序。
+
+## 修复
+
+- 调整 DatePicker 等表单示例的容器宽度与布局，避免触发按钮和说明文字被挤压、过度换行。
+- 修正 Calendar 周数单元格的表头语义，并避免将内部 week 对象透传至 DOM。
+- 为 Combobox 清空和展开按钮补充可访问名称，修复无匹配结果时的空状态展示。
+- 调整 InputGroup 示例的提交按钮状态，避免空输入时整个输入组变暗、文字对比度降低。
+
+## 交互与测试配置
+
+- 新增 `VITE_STORYBOOK_INTERACTIONS` 环境变量：开发预览和生产站点仅在其值为 `true` 时自动执行 Story 交互；设为 `false` 或不配置时关闭，仍可手动操作组件。
+- 保留测试环境强制执行交互的规则，环境变量不会关闭 `test-storybook` 中的交互测试。
+- 本地通过 `packages/ui/.env.local` 配置，修改后重启 Storybook；线上通过部署平台配置，修改后重新构建部署。
+- 将 Switch、InputOTP、Menubar 和 MessageScroller 使用的相关依赖纳入测试预构建，减少首次加载时依赖优化触发页面重载的问题。
+- 同步更新发布指南中的交互开关说明。
+
+## 发布说明
+
+- 本次为 Storybook 文档与组件修复更新，状态为**待提交、待部署**。
+- 组件包版本仍为 `0.0.0`；本次记录不代表 npm 包已发布。
