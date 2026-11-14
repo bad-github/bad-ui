@@ -4,6 +4,7 @@ export * from './alert-dialog';
 export * from './aspect-ratio';
 export * from './attachment';
 export * from './avatar';
+export * from './bad-button';
 export * from './bad-empty';
 export * from './badge';
 export * from './breadcrumb';
