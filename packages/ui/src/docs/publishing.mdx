@@ -4,7 +4,7 @@ import { Meta } from '@storybook/addon-docs/blocks';
 
 # 发布指南
 
-本文按当前仓库结构说明手动发布流程，供首次发布前审阅。部署平台、域名和首发版本尚未确定，文中的 `0.1.0`、`0.1.0-beta.0` 均为示例。
+本文说明本地验证与手动发布流程。npm 正式版已配置 `.github/workflows/publish.yml`：发布正式 GitHub Release 后，经检查、测试和构建，通过 OIDC 上传 npm；一次性设置及操作步骤见仓库的 `docs/npm-publishing.md`。Storybook 部署仍需单独配置，文中的 `0.1.0`、`0.1.0-beta.0` 均为示例。
 
 | 发布内容 | 使用方式 | 构建产物 |
 | --- | --- | --- |
@@ -86,7 +86,7 @@ Storybook Guide 中的 **Mark as complete** 只是完成引导标记；应在实
 
 当前待发布包的配置位于 `packages/ui/package.json`：
 
-- 包名为 `@badnpm/ui`，当前版本为 `0.0.0`。
+- 包名为 `@badnpm/ui`，当前待发布版本为 `0.0.1`，对应正式 GitHub Release 标签为 `v0.0.1`。
 - 仓库根包设为 `private: true`；实际组件包没有设置 `private: true`。发布操作应在组件包目录执行。
 - 需要拥有 npm 上 `@badnpm` scope 的发布权限；本地使用这个名字不代表已获得线上权限。
 - 组件包使用 `files: ["dist"]` 选择发布产物；npm 还会自动包含包清单、README 和许可证等文件。
@@ -94,7 +94,7 @@ Storybook Guide 中的 **Mark as complete** 只是完成引导标记；应在实
 
 在 `packages/ui/package.json` 中设置本次版本，并在 `packages/ui/src/docs/changelog/` 中新增或更新本次发布日期的 MDX 文档。若发布仍在完善中的首版，可使用下文的 beta 流程。
 
-注意：`packages/ui/README.md` 中仍有“当前包标记为 private”的旧说明，与现有包配置不一致，正式发布前应同步修订。此指南仅记录现状，不代表已完成发布检查。
+自动发布正式版时，GitHub Release 标签必须为 `v` 加包版本，例如 `v0.1.0`；预发布 Release 会被自动发布工作流跳过。npm 中已存在的版本不能重复使用。
 
 ### 2. 构建并检查包内容
 

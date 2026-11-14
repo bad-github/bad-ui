@@ -31,7 +31,7 @@ export default defineConfig({
         extends: true,
         // 提前预构建已出现延迟发现的依赖，避免首次加载 Story 时刷新测试页面。
         optimizeDeps: {
-          include: ['@base-ui/react/switch', 'input-otp', '@base-ui/react/menubar', '@shadcn/react/message-scroller'],
+          include: ['@base-ui/react/switch', 'input-otp', '@base-ui/react/menubar', '@shadcn/react/message-scroller', '@base-ui/react/navigation-menu', '@base-ui/react/progress', '@shadcn/react/questionnaire', '@base-ui/react/radio', '@base-ui/react/radio-group', 'react-resizable-panels', '@base-ui/react/scroll-area', '@base-ui/react/select', '@base-ui/react/slider', '@base-ui/react/tabs', '@base-ui/react/toast', '@base-ui/react/toggle', '@base-ui/react/toggle-group'],
         },
         plugins: [
           // The plugin will run tests for the stories defined in your Storybook config

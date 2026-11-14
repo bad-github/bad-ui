@@ -1,7 +1,16 @@
 {
   "name": "@badnpm/ui",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bad-github/bad-ui.git",
+    "directory": "packages/ui"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
   "type": "module",
   "scripts": {
     "lint": "eslint",

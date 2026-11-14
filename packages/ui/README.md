@@ -10,7 +10,7 @@ React 19 组件库，提供 ESM、CommonJS、UMD 三种产物，以及独立的�
 npm install @badnpm/ui react@^19 react-dom@^19
 ```
 
-当前包标记为 private，发布前可使用本地 tarball 验证。下文统一使用当前包名 `@badnpm/ui`。
+组件包公开发布到 npm；发布前可使用本地 tarball 验证。下文统一使用当前包名 `@badnpm/ui`。
 
 ## 样式入口
 

@@ -1,0 +1,51 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Development/Changelog/2026-11-14" />
+
+# 2026-11-14 · v0.0.1 · 完成全部组件的 Story 覆盖
+
+## 新增
+
+- 补充 N 组：NativeSelect、NavigationMenu，共 14 个示例。
+- 补充 P 组：Pagination、Popover、Progress，共 18 个示例。
+- 补充 Q、R 组：Questionnaire、RadioGroup、Resizable，共 18 个示例。
+- 补充 S 组：ScrollArea、Select、Separator、Sheet、Sidebar、Skeleton、Slider、Spinner、Switch，共 46 个示例。
+- 补充 T 组：Table、Tabs、Textarea、Toast、Toggle、ToggleGroup、Tooltip、Trace，共 47 个示例；保留已有 ThemeToggle 示例。
+- 本次共为 25 个组件新增 143 个示例。至此，组件目录中现有的 64 个组件文件均有对应 Story；此覆盖表示每个组件已提供示例，不代表所有属性组合和边界场景均已穷尽。
+
+## 示例与浏览体验
+
+- 选择类组件覆盖初始值、分组、禁用项、错误状态和受控选择；原生选择框增加必填校验示例。
+- Pagination 展示首尾边界、多页省略、简洁模式和单页；Popover、Sheet 展示方向、对齐、受控开关、表单保存与关闭后的焦点恢复。
+- Questionnaire 展示分步提交、多选、输入题、跳过、返回和快捷键；RadioGroup 展示标签关联与方向键切换。
+- Resizable 展示横竖分栏、三栏、手柄、嵌套布局及键盘调整；Sidebar 展示折叠方式、布局变体、左右位置和嵌套菜单。
+- ScrollArea 展示纵向、横向、长文本和短内容；Table 展示汇总、空数据、选中行样式和宽表。
+- Progress、Skeleton 和 Toast 的动态演示由按钮触发，不使用自动计时推进；Toast 使用独立管理器，避免示例之间共享通知状态。
+- Tabs、Toggle、ToggleGroup、Switch、Slider 展示主要状态与切换操作；Tooltip 覆盖悬停和键盘聚焦，Trace 覆盖任务状态、折叠详情及链接。
+- 所有新增交互沿用 `VITE_STORYBOOK_INTERACTIONS` 开关，测试环境始终执行交互；普通预览默认保持静态，仍可手动操作。
+
+## 修复与无障碍
+
+- 移除 Trace 等待状态的额外透明度，并提高辅助说明文字对比度，修复深色主题下文字对比度不足的问题。
+- 为宽表示例提供可聚焦内容，使横向滚动区域可通过键盘访问。
+- 完善 Tooltip 示例的提示语义，以及表单、选项、按钮和滑块的可访问名称与关联说明。
+- 调整弹层测试中的动画等待、隐藏节点判断和焦点检查；按组件实际语义检查 ARIA 禁用状态。
+
+## 测试与构建
+
+- 为新增组件的相关依赖补充测试预构建配置，减少首次加载触发 Vite 依赖优化与页面重载的情况。
+- 新增 N 至 T 各组示例已分别完成浏览器交互与无障碍测试；类型检查、ESLint 和 Storybook 静态构建通过。
+
+## npm 发布准备
+
+- 补充组件包仓库信息，以及公开发布到 npm 的 `publishConfig` 配置。
+- 新增 GitHub Actions 发布工作流：发布正式 GitHub Release 时核对标签与版本，执行检查、测试、构建和打包预览，通过后使用 OIDC 发布到 npm。
+- 普通推送、PR、草稿及预发布 Release 不触发正式 npm 发布；该工作流不负责部署 Storybook。
+- 新增 npm 自动发布配置说明，并同步更新组件包 README 与 Storybook 发布指南。
+
+## 发布说明
+
+- 本次状态为**待提交、待部署**；本次更新过程中未执行线上部署或 npm 发布。
+- 组件包版本由 `0.0.0` 升级为 `0.0.1`，对应正式 GitHub Release 标签为 `v0.0.1`；当前为待发布版本，不代表已上传 npm。
+- npm 中已有 `0.0.0`，不能重复发布。发布 `0.0.1` 前需完成 Trusted Publisher 配置。
+- npm 自动发布工作流已写入仓库，远端执行及 OIDC 发布结果需以 GitHub Actions 的实际运行记录为准。
