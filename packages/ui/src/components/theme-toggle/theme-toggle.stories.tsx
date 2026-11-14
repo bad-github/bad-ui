@@ -1,18 +1,20 @@
-import { shouldRunInteractions } from '../../.storybook/testing/interaction-mode';
+import { shouldRunInteractions } from '../../../.storybook/testing/interaction-mode';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, fn, waitFor } from 'storybook/test';
-import { ThemeToggle } from './theme-toggle';
-import type { ThemeToggleProps } from './theme-toggle';
-import { ThemeProvider, useTheme } from '../providers/theme-provider';
-import { prepareProviderEnvironment } from '../../.storybook/testing/provider-environment';
+import { ThemeToggle } from './index';
+import { ThemeToggleBackup } from './theme-toggle-backup';
+import type { ThemeToggleProps } from './index';
+import { ThemeProvider, useTheme } from '../../providers/theme-provider';
+import { prepareProviderEnvironment } from '../../../.storybook/testing/provider-environment';
 
 const storageKey = 'bad-ui:storybook:demo:theme-toggle';
 
-function ToggleExample(args: ThemeToggleProps) {
+function ToggleExample({ backup = false, ...args }: ThemeToggleProps & { backup?: boolean }) {
   const { theme } = useTheme();
+  const Component = backup ? ThemeToggleBackup : ThemeToggle;
   return (
     <section className="flex flex-col gap-4" aria-label="主题按钮示例" style={{ padding: 24 }}>
-      <ThemeToggle {...args} />
+      <Component {...args} />
       <p role="status">当前主题：{theme}</p>
     </section>
   );
@@ -22,10 +24,19 @@ const meta = {
   title: 'Components/ThemeToggle',
   component: ThemeToggle,
   args: { onClick: fn(), disabled: false },
-  render: (args) => <ThemeProvider defaultTheme="light" storageKey={storageKey}><ToggleExample {...args} /></ThemeProvider>,
+  render: (args) => (
+    <ThemeProvider defaultTheme="light" storageKey={storageKey}>
+      <ToggleExample {...args} />
+    </ThemeProvider>
+  ),
   parameters: {
     isolatedThemeProvider: true,
-    docs: { description: { component: '依赖 ThemeProvider，通过点击切换深浅主题。调用方 onClick 先执行，可通过 preventDefault() 取消本次切换。图标按钮通过隐藏文本提供可访问名称。' } },
+    docs: {
+      description: {
+        component:
+          '依赖 ThemeProvider，通过点击切换深浅主题。调用方 onClick 先执行，可通过 preventDefault() 取消本次切换。图标按钮通过隐藏文本提供可访问名称。',
+      },
+    },
   },
   argTypes: {
     darkLabel: { control: 'text', description: '当前浅色时按钮的可访问名称，说明切换到深色。' },
@@ -44,6 +55,13 @@ export const Default: Story = {
     await step('按钮名称随切换目标更新，点击回调和存储正常', async () => {
       await userEvent.click(canvas.getByRole('button', { name: '切换到深色主题' }));
       await expect(args.onClick).toHaveBeenCalled();
+      // 原生 CSS 入场动画从透明开始，等待图标实际可见后再断言。
+      await waitFor(() =>
+        expect(canvas.getByRole('button', { name: '切换到浅色主题' }).querySelector('.theme-toggle__sun')).toBeVisible()
+      );
+      await expect(
+        canvas.getByRole('button', { name: '切换到浅色主题' }).querySelector('.theme-toggle__moon')
+      ).not.toBeVisible();
       await expect(canvas.getByRole('status')).toHaveTextContent('当前主题：dark');
       await expect(localStorage.getItem(storageKey)).toBe('dark');
       await userEvent.click(canvas.getByRole('button', { name: '切换到浅色主题' }));
@@ -71,5 +89,21 @@ export const Disabled: Story = {
     await expect(canvas.getByRole('button', { name: '切换到深色主题' })).toBeDisabled();
     await expect(canvas.getByRole('status')).toHaveTextContent('当前主题：light');
     await expect(args.onClick).not.toHaveBeenCalled();
+  },
+};
+
+export const LegacyBackup: Story = {
+  render: (args) => (
+    <ThemeProvider defaultTheme="light" storageKey={storageKey}>
+      <ToggleExample {...args} backup />
+    </ThemeProvider>
+  ),
+  parameters: {
+    docs: { description: { story: '保留改造前的 Button + Tailwind + Lucide 实现，用于对照外观和原有切换行为。' } },
+  },
+  play: async ({ canvas, userEvent }) => {
+    if (!shouldRunInteractions) return;
+    await userEvent.click(canvas.getByRole('button', { name: '切换到深色主题' }));
+    await expect(canvas.getByRole('status')).toHaveTextContent('当前主题：dark');
   },
 };

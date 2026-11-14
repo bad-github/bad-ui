@@ -6,14 +6,14 @@ import { MoonIcon, SunIcon } from 'lucide-react';
 import { Button } from '@badnpm/ui/components/button';
 import { useTheme } from '@badnpm/ui/providers/theme-provider';
 
-export type ThemeToggleProps = Omit<ComponentProps<typeof Button>, 'children'> & {
+export type ThemeToggleBackupProps = Omit<ComponentProps<typeof Button>, 'children'> & {
   /** 切换到深色模式的无障碍文案，默认为“切换到深色主题”。 */
   darkLabel?: string;
   /** 切换到浅色模式的无障碍文案，默认为“切换到浅色主题”。 */
   lightLabel?: string;
 };
 
-export function ThemeToggle({
+export function ThemeToggleBackup({
   darkLabel = '切换到深色主题',
   lightLabel = '切换到浅色主题',
   variant = 'outline',
@@ -21,7 +21,7 @@ export function ThemeToggle({
   title = '切换主题',
   onClick,
   ...props
-}: ThemeToggleProps) {
+}: ThemeToggleBackupProps) {
   const { toggleTheme } = useTheme();
 
   return (

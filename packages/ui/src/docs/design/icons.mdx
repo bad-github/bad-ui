@@ -4,7 +4,7 @@ import { Meta } from '@storybook/addon-docs/blocks';
 
 # 图标
 
-组件库使用 **Lucide React** 的 SVG 图标。目前 ThemeToggle 使用 MoonIcon / SunIcon，Button 示例使用 PlusIcon。图标通过具名导入使用，没有自建的统一 Icon 包装组件。
+组件库主要使用 **Lucide React** 的 SVG 图标，例如 Button 示例中的 PlusIcon。ThemeToggle 使用独立的 SVG React 组件，便于复制到不依赖 Lucide 的项目；旧实现保留在 ThemeToggleBackup 中。
 
 ## 在应用中使用
 
