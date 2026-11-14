@@ -1,0 +1,27 @@
+/* 与原 loading 组件一致的三点缩放和十二步旋转动画。 */
+.bad-ui-loading-page {
+  animation: bad-ui-loading-scale 1s infinite ease-in-out both;
+}
+
+@keyframes bad-ui-loading-scale {
+  0%,
+  100% {
+    transform: scale(0.6);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+}
+
+.bad-ui-loading-component {
+  animation: bad-ui-loading-spin 1s steps(12) infinite;
+}
+
+@keyframes bad-ui-loading-spin {
+  from {
+    transform: rotate(0);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
