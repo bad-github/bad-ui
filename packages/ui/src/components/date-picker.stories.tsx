@@ -1,7 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useId, useState } from 'react';
 import { format, addDays } from 'date-fns';
-import { zhCN } from 'date-fns/locale';
+// 与 Calendar 一致，使用包含无障碍文案翻译的 DayPicker locale。
+import { zhCN } from 'react-day-picker/locale';
 import type { DateRange as PickerRange } from 'react-day-picker';
 import { CalendarIcon } from 'lucide-react';
 import { expect, within, waitFor } from 'storybook/test';

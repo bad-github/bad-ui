@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useState, type ComponentProps } from 'react';
-import { zhCN, enUS } from 'date-fns/locale';
+// DayPicker 的 locale 额外包含导航、下拉框及日期按钮的无障碍文案翻译。
+import { zhCN, enUS } from 'react-day-picker/locale';
 import type { DateRange as CalendarRange } from 'react-day-picker';
 import { expect } from 'storybook/test';
 import { shouldRunInteractions } from '../../.storybook/testing/interaction-mode';
@@ -38,6 +39,8 @@ function Single({
         defaultMonth={month}
         today={today}
         locale={english ? enUS : zhCN}
+        // 默认英文标签使用 1st、2nd 等序数；改用数字日期以匹配可见文本，
+        // 同时保留完整日期与选中状态，满足项目的 label-content-name-mismatch 检查。
         labels={
           english
             ? {
@@ -155,6 +158,7 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {
   play: async ({ canvas, canvasElement, userEvent }) => {
     if (!shouldRunInteractions) return;
+    await expect(canvas.getByRole('button', { name: '前往下个月' })).toBeVisible();
     const day = canvasElement.querySelector<HTMLButtonElement>('button[data-day="2026/11/16"]');
     if (!day) throw new Error('未找到 11 月 16 日');
     await userEvent.click(day);
@@ -288,7 +292,13 @@ export const FixedWeeks: Story = {
   args: { fixedWeeks: true },
   parameters: { docs: { description: { story: '始终显示六行日期，切换月份时保持网格高度。' } } },
 };
-export const English: Story = { args: { english: true } };
+export const English: Story = {
+  args: { english: true },
+  play: async ({ canvas }) => {
+    if (!shouldRunInteractions) return;
+    await expect(canvas.getByRole('button', { name: 'Go to the Next Month' })).toBeVisible();
+  },
+};
 export const OutlineNavigation: Story = { args: { buttonVariant: 'outline' } };
 export const ControlledMonth: Story = {
   render: () => <ControlledMonthExample />,

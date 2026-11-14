@@ -43,12 +43,15 @@ function DialogContent({
   className,
   children,
   showCloseButton = true,
+  portalProps,
   ...props
 }: DialogPrimitive.Popup.Props & {
   showCloseButton?: boolean
+  /** Portal 配置独立透传，避免 container 等属性被传给 Popup DOM。 */
+  portalProps?: Omit<DialogPrimitive.Portal.Props, "children">
 }) {
   return (
-    <DialogPortal>
+    <DialogPortal {...portalProps}>
       <DialogOverlay />
       <DialogPrimitive.Popup
         data-slot="dialog-content"
