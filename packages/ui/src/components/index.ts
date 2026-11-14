@@ -28,6 +28,7 @@ export * from './drawer';
 export * from './dropdown-menu';
 export * from './empty';
 export * from './field';
+export * from './highlight-keyword';
 export * from './hover-card';
 export * from './input';
 export * from './input-group';
