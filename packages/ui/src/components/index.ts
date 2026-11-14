@@ -19,6 +19,7 @@ export * from './checkbox';
 export * from './code-block';
 export * from './collapsible';
 export * from './combobox';
+export * from './composition-input';
 export * from './command';
 export * from './context-menu';
 export * from './dialog';

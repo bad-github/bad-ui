@@ -10,7 +10,7 @@ const sizes = ['xs', 'sm', 'default', 'lg'] as const;
 const iconSizes = ['icon-xs', 'icon-sm', 'icon', 'icon-lg'] as const;
 
 const meta = {
-  title: 'Components/BadButton',
+  title: 'Custom Components/BadButton',
   component: BadButton,
   args: { children: '保存', type: 'button', loading: false, disabled: false, onClick: fn() },
   argTypes: {

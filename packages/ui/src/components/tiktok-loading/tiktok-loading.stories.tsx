@@ -6,7 +6,7 @@ import { Button } from '../button';
 import { TiktokLoading, type TiktokLoadingProps } from './index';
 
 const meta = {
-  title: 'Components/TiktokLoading',
+  title: 'Custom Components/TiktokLoading',
   component: TiktokLoading,
   args: {
     type: 'svg',

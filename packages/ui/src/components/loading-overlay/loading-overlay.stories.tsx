@@ -21,7 +21,7 @@ function Content() {
 }
 
 const meta = {
-  title: 'Components/LoadingOverlay',
+  title: 'Custom Components/LoadingOverlay',
   component: LoadingOverlay,
   args: {
     loading: true,

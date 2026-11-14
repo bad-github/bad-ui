@@ -4,7 +4,7 @@ import { shouldRunInteractions } from '../../../.storybook/testing/interaction-m
 import { BadEmpty } from './index';
 
 const meta = {
-  title: 'Components/BadEmpty',
+  title: 'Custom Components/BadEmpty',
   component: BadEmpty,
   args: { type: 'component', text: 'No data' },
   argTypes: {
