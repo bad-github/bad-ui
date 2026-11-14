@@ -153,9 +153,13 @@ export const Default: Story = {
     if (!shouldRunInteractions) return;
     const viewport = canvas.getByRole('region', { name: '消息列表' });
     await waitFor(() => expect(viewport.scrollTop).toBeGreaterThan(0));
-    await userEvent.click(canvas.getByRole('button', { name: '回到开头' }));
+    const startButton = canvas.getByRole('button', { name: '回到开头' });
+    await waitFor(() => expect(startButton).toHaveAttribute('data-active', 'true'));
+    await userEvent.click(startButton);
     await waitFor(() => expect(viewport.scrollTop).toBeLessThan(2));
-    await userEvent.click(canvas.getByRole('button', { name: '查看最新消息' }));
+    const endButton = canvas.getByRole('button', { name: '查看最新消息' });
+    await waitFor(() => expect(endButton).toHaveAttribute('data-active', 'true'));
+    await userEvent.click(endButton);
     await waitFor(() => expect(viewport.scrollHeight - viewport.clientHeight - viewport.scrollTop).toBeLessThan(2));
   },
 };
