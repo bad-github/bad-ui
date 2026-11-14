@@ -38,3 +38,6 @@ storybook-static
 
 # Generated test coverage reports
 coverage/
+
+# Wrangler local state
+.wrangler/

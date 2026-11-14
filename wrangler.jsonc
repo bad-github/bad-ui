@@ -1,0 +1,7 @@
+{
+  "name": "bad-ui",
+  "compatibility_date": "2026-11-14",
+  "assets": {
+    "directory": "./packages/ui/storybook-static"
+  }
+}

@@ -2,7 +2,7 @@ import { Meta } from '@storybook/addon-docs/blocks';
 
 <Meta title="Development/Deploying Storybook" />
 
-# 发布 Storybook 到 Vercel / Cloudflare Pages
+# 发布 Storybook 到 Vercel / Cloudflare Workers
 
 Storybook 构建产物为 `packages/ui/storybook-static`，用于浏览组件和文档。npm 包发布步骤见 [npm 发布指南](?path=/docs/development-publishing-npm--docs)。以下配置均以仓库根目录为基准，两个平台可以同时关联同一个 GitHub 仓库。
 
@@ -38,28 +38,32 @@ pnpm --filter @badnpm/ui preview-storybook
 | Build Command | `pnpm --filter @badnpm/ui build-storybook` |
 | Output Directory | `packages/ui/storybook-static` |
 
-部署后记录实际地址；仓库之前展示的地址为 https://bad-ui-kappa.vercel.app，当前可用性和绑定以 Vercel 控制台为准。
+Vercel 已部署，地址为 https://bad-ui-kappa.vercel.app，并已关联 GitHub 自动部署；后续推送代码会触发构建，具体分支规则以项目设置为准。
 
-## Cloudflare Pages
+## Cloudflare Workers Static Assets
 
-这里使用 **Pages 静态站点**流程。若控制台进入 Workers 创建页面，应切换到 Pages。
+使用新版 Workers Git 部署流程。仓库根目录的 `wrangler.jsonc` 指定 Worker 名称 `bad-ui`、兼容日期以及静态资源目录 `./packages/ui/storybook-static`。纯静态站点无需 Worker 入口代码，部署和预览共用此资源配置。
 
-1. 在 Workers & Pages 中创建 Pages 项目，选择连接 Git，授权并选择 `bad-github/bad-ui`。
-2. 生产分支选择 `main`，填写构建配置：
+1. 在 Cloudflare 点击 Create app → Continue with GitHub，选择 `bad-github/bad-ui`。
+2. 在“设置您的应用程序”中填写：
 
 | 设置 | 值 |
 | --- | --- |
-| Framework preset | None |
+| 项目名称 | `bad-ui`，与 `wrangler.jsonc` 的 name 一致 |
+| 生产分支 | `main` |
 | Root directory | 仓库根目录（留空） |
-| Build command | `pnpm install --frozen-lockfile && pnpm --filter @badnpm/ui build-storybook` |
-| Build output directory | `packages/ui/storybook-static` |
-| 环境变量 `NODE_VERSION` | `24` |
-| 环境变量 `PNPM_VERSION` | 与根 `package.json` 的 `packageManager` 一致，目前为 `11.25.0` |
-| 环境变量 `SKIP_DEPENDENCY_INSTALL` | `true`，由上方构建命令显式安装依赖 |
+| 构建命令 | `pnpm --filter @badnpm/ui build-storybook` |
+| 部署命令 | `npx wrangler deploy` |
+| 预览命令 | `npx wrangler preview` |
 
-3. 保存并部署，记录分配的 `pages.dev` 地址。需要自定义域名时在项目的 Custom domains 中添加。
+Workers Builds 安装依赖后执行构建，再执行部署命令；无需单独填写输出目录，资源路径从 `wrangler.jsonc` 读取。项目构建环境使用 Node.js 24，pnpm 版本与根 `package.json` 的 `packageManager` 一致（目前 `11.25.0`）；在构建日志核对实际版本，必要时通过构建环境变量 `NODE_VERSION`、`PNPM_VERSION` 指定。
 
-Cloudflare 的线上项目和域名尚未在本次文档更新中核实；上表是此仓库的接入配置。
+预览命令用于启用预览构建后的非生产分支，生成预览站点，不替换 main 的正式部署。它不是启动本地开发服务器。若 Wrangler 提示找不到 preview 命令，应检查使用的 Wrangler 版本，新版流程需要支持 Previews 的版本。
+
+3. **先提交并推送 `wrangler.jsonc` 和要发布的源码，再点击部署**，否则远端无法读取本地配置。
+4. 在部署日志确认 Storybook 构建及静态资源上传成功，记录实际 `workers.dev` 地址。后续在项目 Settings → Build 中调整 Git 分支、构建和部署设置。
+
+Cloudflare 的线上部署结果以实际日志与站点验收为准；本配置文件不表示已部署成功。
 
 ## 每次更新
 
@@ -81,4 +85,4 @@ Cloudflare 的线上项目和域名尚未在本次文档更新中核实；上表
 - **线上仍是旧文档**：核对分支、部署 SHA 和生产域名指向，重新部署包含修改的提交。
 - **UI checks 失败但站点已上线**：这是两条独立流水线，修复测试并更新部署，按需配置门禁。
 
-参考：[Vercel 构建配置](https://vercel.com/docs/builds/configure-a-build)、[Cloudflare Pages 构建配置](https://developers.cloudflare.com/pages/configuration/build-configuration/)、[Cloudflare 构建环境](https://developers.cloudflare.com/pages/configuration/build-image/)。
+参考：[Vercel 构建配置](https://vercel.com/docs/builds/configure-a-build)、[Workers 构建配置](https://developers.cloudflare.com/workers/ci-cd/builds/configuration/)、[Workers 静态资源](https://developers.cloudflare.com/workers/static-assets/)。
