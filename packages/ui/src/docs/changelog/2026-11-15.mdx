@@ -1,0 +1,49 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Development/Changelog/2026-11-15" />
+
+# 2026-11-15 · v0.0.2 · 新增自定义组件与交互示例
+
+## 新增
+
+- 新增 11 个自定义组件，并接入 `@badnpm/ui` 公共导出。
+- **LoadingOverlay**：提供区域、页面和组件三种加载动画，支持尺寸、提示文字与遮罩。加载时保留子组件状态，通过 `inert` 禁用内容的点击和键盘聚焦，并提供加载状态语义。
+- **TiktokLoading**：提供 SVG、HTML 两种双球动画，支持尺寸、周期、颜色和几何参数；切换渲染器时延续动画相位，响应系统“减少动态效果”偏好，并在卸载时清理动画与监听。
+- **BadEmpty**：提供组件与页面两种空状态图形，支持自定义文案和容器属性；图标作为装饰隐藏，避免重复朗读。
+- **BadButton**：在 Button 上增加加载状态，复用 Spinner；加载时禁用激活，保留原有按钮内容和调用方的禁用设置。
+- **BadInput**：组合 InputGroup，支持清空、密码显隐、加载状态、受控输入和 ref 操作。清空通过真实输入事件通知原有回调；加载只显示状态，不自动禁用输入。
+- **BadTooltip**：通过 `trigger`、`content` 配置组合提示，支持定位和长文本换行；自定义样式与默认样式合并，每个实例使用独立 Provider。
+- **BadDialogContent**：支持通过 `container` 指定 Portal 挂载节点，复用既有弹窗样式和关闭行为；自定义挂载位置不改变原有 fixed 定位。
+- **CompositionInput**：区分输入法组合草稿与最终输入，提供 `onFinalChange` 通知并避免组合结束后的同值重复通知。支持标准受控／非受控模式，不额外同步 props 到 state。
+- **HighlightKeyword**：高亮全部不重叠的字面量匹配，支持大小写配置，默认区分大小写。关键词中的正则特殊字符统一转义，文本不作为 HTML 解析。
+- **BadPagination**：支持总条数、自定义每页条数选项、快速跳页和受控／非受控状态；附加区域可独立开关，总数支持自定义渲染。切换条数回到首页并仅通知一次；跳页默认失焦提交，可配置按钮提交，两种方式均支持 Enter。前后导航支持自定义图标或文字，页码数量不随总页数线性增长。
+- **InputPopover**：输入值驱动任意弹层内容，支持卡片、表单等布局。内容通过 `value`、`setValue`、`close` 分别读取、回填和关闭；支持受控开关、输入法完成后的搜索通知、键盘进入面板，以及按关闭原因恢复焦点。
+
+## 主题与样式
+
+- ThemeToggle 继续使用现有 Button 和 ThemeProvider，将图标拆为独立 SVG React 组件，显隐、尺寸、动画及无障碍文字改用原生 CSS，不再依赖 Lucide 和 Tailwind 图标工具类。
+- 保留改造前的 `ThemeToggleBackup`，并将入口、图标、CSS、备份、Story 和迁移说明集中到 `theme-toggle/` 目录。
+- 新增 `styles/component.css`，集中导入自定义组件样式，再由 `globals.css` 引入。
+- 组件目录的 `index.tsx` 统一采用先声明、末尾集中导出的写法；保留现有公共组件名。
+
+## 改进与修复
+
+- DialogContent 增加可选的 `portalProps` 透传，供扩展组件复用挂载能力。
+- TooltipContent 正确处理函数形式的 `className`，保留 Base UI 状态参数及内置样式。
+- Calendar、DatePicker 示例改用 `react-day-picker/locale`，补全导航、下拉框和日期按钮的本地化；保留满足现有无障碍检查的英文日期标签定制。
+- InputPopover 的锚点能力放在独立内容组件中，原有 Popover 组件未作扩展修改。
+
+## Storybook 与验证
+
+- 自定义组件集中到 **Custom Components** 分组，菜单标题使用英文；补充 Controls、中文属性说明及关键实现注释。
+- 新增可直接操作的 Input／CompositionInput、Input／BadInput、Tooltip／BadTooltip 对比示例，展示输入法通知、清空、密码显隐和长文本换行等差异。
+- 分页示例覆盖附加区域开关、条数选项、跳页校验、失焦／按钮提交、自定义导航、空数据、大页数和外部总数变化。
+- InputPopover 示例覆盖卡片、内嵌表单、受控开关、输入法和关闭行为；预览整体靠上布局，外部操作放在输入框上方，减少被弹层遮挡。
+- 新增组件已分批完成类型检查、ESLint 和浏览器交互验证；相关测试覆盖回调去重、禁用、输入法、焦点恢复和键盘操作。输入法自动测试使用合成事件，真实系统输入法仍需手动体验。
+
+## 发布说明
+
+- 组件包版本由 `0.0.1` 升级为 `0.0.2`，对应正式 GitHub Release 标签为 `v0.0.2`；版本号更新不代表已经发布到 npm。
+- 本次日志描述已实现的组件及发布准备，状态为**待部署**；本次工作未执行线上部署或 npm 发布。
+- 自定义组件使用 `Bad` 前缀区分已有基础组件；CompositionInput、HighlightKeyword、InputPopover 等独立用途组件保留描述性名称。
+- 受控 CompositionInput 需通过 `onChange` 实时更新输入值，包括输入法草稿；`onFinalChange` 用于搜索或筛选，不能替代受控输入更新。

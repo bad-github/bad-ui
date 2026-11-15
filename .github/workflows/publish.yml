@@ -71,7 +71,7 @@ jobs:
           if (name !== '@badnpm/ui' || !stableVersion.test(version)) {
             throw new Error('Only stable versions of @badnpm/ui may be published here.');
           }
-          // 例如包版本为 0.0.1，Release 标签必须为 v0.0.1，否则终止发布。
+          // 例如包版本为 0.0.2，Release 标签必须为 v0.0.2，否则终止发布。
           if (process.env.RELEASE_TAG !== `v${version}`) {
             throw new Error(`Release tag must be v${version}; got ${process.env.RELEASE_TAG}`);
           }
