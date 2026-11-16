@@ -4,6 +4,7 @@ import type { ComponentProps } from 'react';
 import { Popover as PopoverPrimitive } from '@base-ui/react/popover';
 import { cn } from 'cn';
 import type { PopoverContent } from '../popover';
+import type { PopupContainer } from '../../providers/config-provider';
 
 /**
  * 沿用现有 PopoverContent 的内容、定位和焦点属性，只额外增加 anchor。
@@ -18,6 +19,8 @@ export type InputPopoverContentProps = ComponentProps<typeof PopoverContent> & {
    * 它只负责定位参照，不会创建触发按钮，也不控制打开、关闭或输入焦点。
    */
   anchor?: PopoverPrimitive.Positioner.Props['anchor'];
+  /** 仅控制 Portal 的 DOM 挂载位置，与 anchor 的定位参照职责独立。 */
+  container?: PopupContainer;
 };
 
 // 沿用现有 Popover 的主题令牌、间距和动画，扩展组件独立维护，避免改动基础组件。
@@ -31,6 +34,7 @@ const contentClassName =
  */
 export function InputPopoverContent({
   anchor,
+  container,
   className,
   align = 'center',
   alignOffset = 0,
@@ -39,7 +43,8 @@ export function InputPopoverContent({
   ...props
 }: InputPopoverContentProps) {
   return (
-    <PopoverPrimitive.Portal>
+    // Base UI 的 null 表示暂不挂载；此处将“恢复默认 body”的配置转换为 undefined。
+    <PopoverPrimitive.Portal container={container ?? undefined}>
       <PopoverPrimitive.Positioner
         // InputPopover 没有按钮 Trigger，必须用输入框作为定位参照，避免弹层失去锚点。
         anchor={anchor}

@@ -2,6 +2,7 @@
 
 import { useRef, type ComponentProps } from 'react';
 import { Input } from './input';
+import { useConfig } from '../providers/config-provider';
 
 export type CompositionInputProps = ComponentProps<typeof Input> & {
   /**
@@ -29,6 +30,7 @@ export type CompositionInputProps = ComponentProps<typeof Input> & {
  */
 export function CompositionInput({
   value,
+  disabled,
   defaultValue,
   onFinalChange,
   onChange,
@@ -36,6 +38,7 @@ export function CompositionInput({
   onCompositionEnd,
   ...props
 }: CompositionInputProps) {
+  const config = useConfig();
   // 这些标记只用于事件判断，不影响 UI，因此用 ref 避免额外渲染。
   const isComposing = useRef(false);
   const lastCompositionValue = useRef<string | null>(null);
@@ -43,6 +46,7 @@ export function CompositionInput({
   return (
     <Input
       {...props}
+      disabled={disabled ?? config.disabled}
       // 沿用 Input 的受控/非受控语义，不复制 value，也不在 Effect 或 render 中同步 state。
       value={value}
       defaultValue={defaultValue}

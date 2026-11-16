@@ -1,12 +1,12 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useId, useState } from 'react';
 import { expect, fn, waitFor, within } from 'storybook/test';
-import { shouldRunInteractions } from '../../.storybook/testing/interaction-mode';
-import { BadTooltip, type BadTooltipProps } from './bad-tooltip';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './tooltip';
-import { Button } from './button';
-import { Textarea } from './textarea';
-import { Field, FieldLabel, FieldDescription } from './field';
+import { shouldRunInteractions } from '../../../.storybook/testing/interaction-mode';
+import { BadTooltip, type BadTooltipProps } from './index';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../tooltip';
+import { Button } from '../button';
+import { Textarea } from '../textarea';
+import { Field, FieldLabel, FieldDescription } from '../field';
 
 function InteractiveExample(args: BadTooltipProps) {
   const id = useId();

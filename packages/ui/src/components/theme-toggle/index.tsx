@@ -2,6 +2,7 @@
 
 import type { ComponentProps } from 'react';
 import { Button } from '../button';
+import { useConfig } from '../../providers/config-provider';
 import { useTheme } from '../../providers/theme-provider';
 import { MoonIcon, SunIcon } from './icons';
 
@@ -13,15 +14,20 @@ type ThemeToggleProps = Omit<ComponentProps<typeof Button>, 'children'> & {
 };
 
 function ThemeToggle({
-  darkLabel = '切换到深色主题',
-  lightLabel = '切换到浅色主题',
+  darkLabel: darkLabelProp,
+  lightLabel: lightLabelProp,
   variant = 'outline',
   size = 'icon',
-  title = '切换主题',
+  title: titleProp,
+  disabled,
   className,
   onClick,
   ...props
 }: ThemeToggleProps) {
+  const config = useConfig();
+  const darkLabel = darkLabelProp ?? config.locale.themeToggle.darkLabel;
+  const lightLabel = lightLabelProp ?? config.locale.themeToggle.lightLabel;
+  const title = titleProp ?? config.locale.themeToggle.title;
   const { toggleTheme } = useTheme();
   return (
     <Button
@@ -30,6 +36,7 @@ function ThemeToggle({
       size={size}
       title={title}
       {...props}
+      disabled={disabled ?? config.disabled}
       data-theme-toggle-size={size}
       // 继续使用现有 Button 的样式与状态，只追加主题图标所需的 CSS 类。
       className={

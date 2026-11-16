@@ -2,6 +2,7 @@
 import { LoadingIcon } from './loading-icon';
 import type * as React from 'react';
 import { cn } from 'cn';
+import { useConfig } from '../../providers/config-provider';
 
 type TProps = {
   loading?: boolean;
@@ -24,6 +25,7 @@ const SizeMap = {
 };
 
 const LoadingComponent = ({ size = 'default' }: TSizeProps) => {
+  const config = useConfig();
   const bars = Array.from({ length: 12 }, (_, i) => {
     const rotate = i * 30; // 360 / 12
     const opacity = Number((1 - (i * 0.9) / 11).toFixed(3)); // 1 到 0.1 递减
@@ -39,7 +41,7 @@ const LoadingComponent = ({ size = 'default' }: TSizeProps) => {
       className={cn('bad-ui-loading-component relative', SizeMap[size])}
       role="status"
       aria-live="polite"
-      aria-label="loading"
+      aria-label={config.locale.loading.label}
     >
       {bars}
     </div>
@@ -47,13 +49,21 @@ const LoadingComponent = ({ size = 'default' }: TSizeProps) => {
 };
 
 const LoadingArea = ({ size = 'default' }: TSizeProps) => {
-  return <LoadingIcon role="status" aria-label="Loading" className={cn('animate-spin fill-primary', SizeMap[size])} />;
+  const config = useConfig();
+  return (
+    <LoadingIcon
+      role="status"
+      aria-label={config.locale.loading.label}
+      className={cn('animate-spin fill-primary', SizeMap[size])}
+    />
+  );
 };
 
 const LoadingPage = ({ size = 'default' }: TSizeProps) => {
+  const config = useConfig();
   const className = cn('bad-ui-loading-page rounded-full bg-primary', SizeMap[size]);
   return (
-    <div className="flex gap-2" role="status" aria-label="Loading">
+    <div className="flex gap-2" role="status" aria-label={config.locale.loading.label}>
       <span className={className} style={{ animationDelay: '-0.32s' }}></span>
       <span className={className} style={{ animationDelay: '-0.16s' }}></span>
       <span className={className}></span>
@@ -62,7 +72,8 @@ const LoadingPage = ({ size = 'default' }: TSizeProps) => {
 };
 
 const Loading = (props: TLoadingProps) => {
-  const { type = 'area', text = 'Loading...', showText = true, size } = props;
+  const config = useConfig();
+  const { type = 'area', text = config.locale.loading.text, showText = true, size } = props;
   const Component = type === 'page' ? LoadingPage : type === 'component' ? LoadingComponent : LoadingArea;
 
   return (
@@ -74,16 +85,7 @@ const Loading = (props: TLoadingProps) => {
 };
 
 const LoadingOverlay = (props: TProps) => {
-  const {
-    className,
-    style,
-    loading = false,
-    children,
-    text = 'Loading...',
-    type = 'area',
-    showText = true,
-    size = 'default',
-  } = props;
+  const { className, style, loading = false, children, text, type = 'area', showText = true, size = 'default' } = props;
 
   return (
     <div className={cn('relative', className)} style={style}>

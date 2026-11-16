@@ -12,6 +12,8 @@
 import './theme-toggle/theme-toggle.css';
 ```
 
+`useConfig` 用于读取本组件库的默认文案和禁用状态。独立迁移时，可删除这个导入，将 `config.locale.themeToggle` 替换为目标项目的默认文案、`config.disabled` 替换为 `false`；图标和 CSS 无需修改。
+
 CSS 根据祖先的 `.dark` 类切换图标与无障碍文案。目标项目的 Button 外观由其自身样式负责；无需复制本仓库的 Tailwind 图标工具类或安装 Lucide。
 
 本仓库通过 `styles/component.css` 统一引入样式，JS 文件不重复导入 CSS。

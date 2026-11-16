@@ -9,14 +9,14 @@
 @import "tw-animate-css";
 /* 加载 shadcn 的 Tailwind 扩展，包括 data-open 等状态变体、折叠动画和滚动效果工具类。 */
 @import "shadcn/tailwind.css";
-/* 加载 Base UI 组件的通用样式与动画，随默认组件样式一同提供。 */
-@import "./base-ui.css";
-/* 加载自定义组件样式。 */
-@import "./component.css";
 /* 加载主题配色变量；各配色通过 data-theme 属性和 .dark 选择器匹配。 */
 @import "./themes/index.css";
 /* 加载基础色变量；data-base-color 控制基础色，默认 Neutral，与主题配色独立组合。 */
 @import "./base-color/index.css";
+/* 加载 Base UI 组件的通用样式与动画，随默认组件样式一同提供。 */
+@import "./base-ui.css";
+/* 加载自定义组件样式。 */
+@import "./component.css";
 
 /*
  * @custom-variant 自定义 Tailwind 变体，控制 dark:bg-… 等 dark: 工具类何时生效。

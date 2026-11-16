@@ -5,11 +5,16 @@ import { EyeIcon, EyeOffIcon, XIcon } from 'lucide-react';
 import { forwardRef, useImperativeHandle, useRef, useState, type ComponentProps } from 'react';
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from './input-group';
 import { Spinner } from './spinner';
+import { useConfig } from '../providers/config-provider';
 
 export type BadInputProps = Omit<ComponentProps<typeof InputGroupInput>, 'ref'> &
   Pick<InputPrimitive.Props, 'onValueChange'> & {
     /** 显示加载图标并隐藏其他右侧操作，不自动禁用输入。 */
     loading?: boolean;
+    /** 操作按钮文案，未传时使用 ConfigProvider 的语言配置。 */
+    clearLabel?: string;
+    showPasswordLabel?: string;
+    hidePasswordLabel?: string;
     /** 非密码输入有值时显示清空按钮；disabled、readOnly 时不能清空。 */
     allowClear?: boolean;
     /** 密码显隐的受控状态；不传时由组件内部管理。仅 type="password" 时生效。 */
@@ -34,7 +39,10 @@ export const BadInput = forwardRef<BadInputHandle, BadInputProps>(function BadIn
     style,
     value,
     defaultValue,
-    disabled,
+    disabled: disabledProp,
+    clearLabel,
+    showPasswordLabel,
+    hidePasswordLabel,
     readOnly,
     onValueChange,
     showPassword,
@@ -43,6 +51,8 @@ export const BadInput = forwardRef<BadInputHandle, BadInputProps>(function BadIn
   },
   ref
 ) {
+  const config = useConfig();
+  const disabled = disabledProp ?? config.disabled;
   const inputRef = useRef<HTMLInputElement>(null);
   // localValue 只用于判断非受控输入是否显示清空按钮，不作为 Input 的 value。
   const [localValue, setLocalValue] = useState(defaultValue ?? '');
@@ -85,7 +95,11 @@ export const BadInput = forwardRef<BadInputHandle, BadInputProps>(function BadIn
     rightIcon = (
       <InputGroupButton
         size="icon-xs"
-        aria-label={isPasswordVisible ? 'Hide password' : 'Show password'}
+        aria-label={
+          isPasswordVisible
+            ? (hidePasswordLabel ?? config.locale.input.hidePassword)
+            : (showPasswordLabel ?? config.locale.input.showPassword)
+        }
         aria-pressed={isPasswordVisible}
         disabled={disabled}
         // 鼠标按下时保留输入焦点；按钮仍可通过 Tab 聚焦并由键盘操作。
@@ -103,7 +117,7 @@ export const BadInput = forwardRef<BadInputHandle, BadInputProps>(function BadIn
     rightIcon = (
       <InputGroupButton
         size="icon-xs"
-        aria-label="Clear input"
+        aria-label={clearLabel ?? config.locale.input.clear}
         disabled={disabled || readOnly}
         // 鼠标按下时保留输入焦点；按钮仍可通过 Tab 聚焦并由键盘操作。
         onMouseDown={(event) => event.preventDefault()}

@@ -5,6 +5,7 @@ import { CompositionInput } from '../composition-input';
 import { Popover } from '../popover';
 import { InputPopoverContent } from './content';
 import { cn } from 'cn';
+import { useConfig, type PopupContainer } from '../../providers/config-provider';
 
 type InputPopoverContentContext = {
   /** 输入框当前字符串，包括输入法尚未选字的草稿，适合实时渲染内容。 */
@@ -17,7 +18,7 @@ type InputPopoverContentContext = {
 
 type ContentProps = Omit<
   ComponentProps<typeof InputPopoverContent>,
-  'children' | 'anchor' | 'initialFocus' | 'finalFocus' | 'className' | 'id' | 'role' | 'render' | 'ref'
+  'children' | 'anchor' | 'container' | 'initialFocus' | 'finalFocus' | 'className' | 'id' | 'role' | 'render' | 'ref'
 >;
 
 type InputPopoverProps = Omit<
@@ -54,6 +55,8 @@ type InputPopoverProps = Omit<
   contentClassName?: string;
   /** 面板属性和定位参数；焦点策略、锚点和 dialog 语义由封装统一管理。 */
   contentProps?: ContentProps;
+  /** 局部挂载容器；undefined 继承 ConfigProvider，null 明确恢复 body。 */
+  container?: PopupContainer;
 };
 
 /**
@@ -70,10 +73,11 @@ function InputPopover({
   defaultOpen = false,
   onOpenChange,
   renderContent,
-  contentLabel = '输入辅助面板',
+  contentLabel,
+  container,
   contentClassName,
   contentProps,
-  disabled = false,
+  disabled: disabledProp,
   readOnly = false,
   onChange,
   onFocus,
@@ -82,6 +86,8 @@ function InputPopover({
   ref,
   ...inputProps
 }: InputPopoverProps) {
+  const config = useConfig();
+  const disabled = disabledProp ?? config.disabled;
   const popupId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
   const popupRef = useRef<HTMLDivElement>(null);
@@ -179,9 +185,10 @@ function InputPopover({
         // 将弹层锚定到当前输入框；定位器据此计算位置和 --anchor-width（用于面板等宽）。
         // anchor 不控制开关：打开与关闭仍由上面的 Popover open/onOpenChange 管理。
         anchor={inputRef}
+        container={container === undefined ? config.popupContainer : container}
         align={contentProps?.align ?? 'start'}
         role="dialog"
-        aria-label={contentProps?.['aria-label'] ?? contentLabel}
+        aria-label={contentProps?.['aria-label'] ?? contentLabel ?? config.locale.inputPopover.label}
         className={cn('w-(--anchor-width) max-w-(--available-width)', contentClassName)}
         // 打开时不自动聚焦内容，否则输入每次打开面板都会被中断。
         initialFocus={false}

@@ -4,6 +4,7 @@ import { EmptyComponentIcon } from './empty-component-icon';
 import { EmptyPageIcon } from './empty-page-icon';
 import type { ComponentProps } from 'react';
 import { cn } from 'cn';
+import { useConfig } from '../../providers/config-provider';
 
 type BadEmptyProps = Omit<ComponentProps<'div'>, 'children'> & {
   type?: 'component' | 'page';
@@ -11,7 +12,8 @@ type BadEmptyProps = Omit<ComponentProps<'div'>, 'children'> & {
   text?: string;
 };
 
-function BadEmpty({ type = 'component', text = 'No data', className, ...props }: BadEmptyProps) {
+function BadEmpty({ type = 'component', text, className, ...props }: BadEmptyProps) {
+  const config = useConfig();
   return (
     // 透传容器属性，方便使用方设置布局、style 和 aria 属性，无需再套一层容器。
     <div
@@ -24,7 +26,7 @@ function BadEmpty({ type = 'component', text = 'No data', className, ...props }:
       ) : (
         <EmptyPageIcon aria-hidden="true" focusable="false" />
       )}
-      {text}
+      {text ?? config.locale.empty.text}
     </div>
   );
 }

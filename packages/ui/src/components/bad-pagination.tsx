@@ -3,18 +3,21 @@
 import { useId, useRef, useState, type ComponentProps, type ReactNode } from 'react';
 import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
 import { cn } from 'cn';
+import { useConfig, type ConfigLocale } from '../providers/config-provider';
+import { mergeDefined } from '../providers/config-provider/utils';
 import { Button } from './button';
 import { Input } from './input';
 import { Field, FieldLabel, FieldError } from './field';
 import { NativeSelect, NativeSelectOption } from './native-select';
 import { Pagination, PaginationContent, PaginationItem, PaginationEllipsis } from './pagination';
 
-const DEFAULT_PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const;
 type PageItem = number | 'ellipsis-start' | 'ellipsis-end';
 
 export type BadPaginationProps = Omit<ComponentProps<typeof Pagination>, 'children' | 'onChange'> & {
   /** 数据总条数，不是总页数。负数、NaN、Infinity 按 0 处理，小数向下取整。默认 0。 */
   total?: number;
+  /** 局部覆盖分页文案，未指定的词条继承 ConfigProvider。 */
+  locale?: Partial<ConfigLocale['pagination']>;
   /** 当前页，从 1 开始。传入后为受控模式，需在 onChange 中更新。 */
   current?: number;
   /** 非受控初始页码，仅初始化时读取。默认 1。 */
@@ -77,22 +80,32 @@ function getPageItems(current: number, count: number): PageItem[] {
  */
 export function BadPagination({
   total = 0,
+  locale,
   current,
   defaultCurrent = 1,
   pageSize,
   defaultPageSize = 10,
-  pageSizeOptions = DEFAULT_PAGE_SIZE_OPTIONS,
-  showSizeChanger = false,
-  showQuickJumper = false,
-  quickJumperTrigger = 'blur',
-  showTotal = false,
-  disabled = false,
+  pageSizeOptions: pageSizeOptionsProp,
+  showSizeChanger: showSizeChangerProp,
+  showQuickJumper: showQuickJumperProp,
+  quickJumperTrigger: quickJumperTriggerProp,
+  showTotal: showTotalProp,
+  disabled: disabledProp,
   previousContent,
   nextContent,
   onChange,
   className,
   ...props
 }: BadPaginationProps) {
+  const config = useConfig();
+  const text = mergeDefined(config.locale.pagination, locale);
+  // 不在参数解构中提前赋默认值，才能区分未传与显式 false。
+  const pageSizeOptions = pageSizeOptionsProp ?? config.pagination.pageSizeOptions;
+  const showSizeChanger = showSizeChangerProp ?? config.pagination.showSizeChanger;
+  const showQuickJumper = showQuickJumperProp ?? config.pagination.showQuickJumper;
+  const quickJumperTrigger = quickJumperTriggerProp ?? config.pagination.quickJumperTrigger;
+  const showTotal = showTotalProp ?? config.pagination.showTotal;
+  const disabled = disabledProp ?? config.disabled;
   const jumpId = useId();
   const isComposing = useRef(false);
   // 一份草稿只提交一次，避免 Enter 后紧接着失焦，或业务回调主动移动焦点时重复通知。
@@ -101,7 +114,7 @@ export function BadPagination({
   // 将两项放在同一 state 中，修改条数并回到首页时原子更新，避免中间状态。
   const [internal, setInternal] = useState(() => ({ current: defaultCurrent, pageSize: defaultPageSize }));
   const [jumpValue, setJumpValue] = useState('');
-  const [jumpError, setJumpError] = useState('');
+  const [jumpInvalid, setJumpInvalid] = useState(false);
   const safeTotal = Number.isFinite(total) ? Math.min(Number.MAX_SAFE_INTEGER, Math.max(0, Math.floor(total))) : 0;
   const actualPageSize = positiveInteger(pageSize ?? internal.pageSize, 10);
   // 无数据也保留第 1 页作为稳定占位，但禁用翻页和跳页。
@@ -126,7 +139,7 @@ export function BadPagination({
     const next = Math.min(Math.max(1, nextPage), nextCount);
     hasPendingJump.current = false;
     setJumpValue('');
-    setJumpError('');
+    setJumpInvalid(false);
     if (next === actualCurrent && nextSize === actualPageSize) return;
     if (current === undefined || pageSize === undefined) {
       setInternal((previous) => ({
@@ -143,13 +156,13 @@ export function BadPagination({
     const draft = jumpValue.trim();
     if (!draft) {
       hasPendingJump.current = false;
-      setJumpError('');
+      setJumpInvalid(false);
       return;
     }
     const next = Number(draft);
     // 不用 parseInt，避免把 2.5、2abc 等部分合法的输入悄悄截断成另一个页码。
     if (!/^\d+$/.test(draft) || !Number.isSafeInteger(next) || next < 1) {
-      setJumpError('请输入大于 0 的整数页码');
+      setJumpInvalid(true);
       return;
     }
     // 超出末页时落到最后一页，保证 onChange 永远收到合法页码。
@@ -159,13 +172,13 @@ export function BadPagination({
   return (
     <Pagination
       {...props}
-      aria-label={props['aria-label'] ?? '分页'}
+      aria-label={props['aria-label'] ?? text.navigation}
       aria-disabled={disabled || undefined}
       className={cn('flex-wrap items-center gap-x-4 gap-y-3', className)}
     >
       {showTotal && (
         <span className="text-sm whitespace-nowrap text-muted-foreground">
-          {typeof showTotal === 'function' ? showTotal(safeTotal, range) : `共 ${safeTotal} 条`}
+          {typeof showTotal === 'function' ? showTotal(safeTotal, range) : text.total(safeTotal)}
         </span>
       )}
       <PaginationContent className="flex-wrap justify-center">
@@ -175,7 +188,7 @@ export function BadPagination({
             type="button"
             variant="ghost"
             disabled={pagingDisabled || actualCurrent === 1}
-            aria-label="上一页"
+            aria-label={text.previous}
             onClick={() => changePage(actualCurrent - 1)}
           >
             {/* 仅替换按钮内容，无障碍名称、禁用与翻页行为仍由组件统一管理。 */}
@@ -184,7 +197,7 @@ export function BadPagination({
             ) : (
               <>
                 <ChevronLeftIcon data-icon="inline-start" />
-                <span className="hidden sm:block">上一页</span>
+                <span className="hidden sm:block">{text.previous}</span>
               </>
             )}
           </Button>
@@ -198,7 +211,7 @@ export function BadPagination({
                 size="icon"
                 className="w-auto min-w-8 px-2"
                 disabled={pagingDisabled}
-                aria-label={`第 ${item} 页`}
+                aria-label={text.page(item)}
                 aria-current={item === actualCurrent ? 'page' : undefined}
                 onClick={() => changePage(item)}
               >
@@ -214,14 +227,14 @@ export function BadPagination({
             type="button"
             variant="ghost"
             disabled={pagingDisabled || actualCurrent === pageCount}
-            aria-label="下一页"
+            aria-label={text.next}
             onClick={() => changePage(actualCurrent + 1)}
           >
             {nextContent !== undefined ? (
               nextContent
             ) : (
               <>
-                <span className="hidden sm:block">下一页</span>
+                <span className="hidden sm:block">{text.next}</span>
                 <ChevronRightIcon data-icon="inline-end" />
               </>
             )}
@@ -230,7 +243,7 @@ export function BadPagination({
       </PaginationContent>
       {showSizeChanger && (
         <NativeSelect
-          aria-label="每页条数"
+          aria-label={text.pageSize}
           value={actualPageSize}
           disabled={disabled}
           onChange={(event) => {
@@ -240,21 +253,21 @@ export function BadPagination({
         >
           {sizes.map((size) => (
             <NativeSelectOption key={size} value={size}>
-              {size} 条/页
+              {text.pageSizeOption(size)}
             </NativeSelectOption>
           ))}
         </NativeSelect>
       )}
       {showQuickJumper && (
-        <Field className="w-auto" data-invalid={!!jumpError}>
+        <Field className="w-auto" data-invalid={!!jumpInvalid}>
           <div className="flex items-center gap-2 text-sm whitespace-nowrap">
-            <FieldLabel htmlFor={jumpId}>跳至</FieldLabel>
+            <FieldLabel htmlFor={jumpId}>{text.jumpTo}</FieldLabel>
             <Input
               id={jumpId}
-              aria-label="跳至页码"
-              aria-invalid={!!jumpError}
-              aria-describedby={jumpError ? `${jumpId}-error` : undefined}
-              title={quickJumperTrigger === 'blur' ? '输入页码后失焦或按 Enter 跳转' : '输入页码后按 Enter 或点击跳转'}
+              aria-label={text.jumpPage}
+              aria-invalid={!!jumpInvalid}
+              aria-describedby={jumpInvalid ? `${jumpId}-error` : undefined}
+              title={quickJumperTrigger === 'blur' ? text.jumpHintBlur : text.jumpHintButton}
               inputMode="numeric"
               className="w-16"
               placeholder={String(actualCurrent)}
@@ -263,7 +276,7 @@ export function BadPagination({
               onChange={(event) => {
                 hasPendingJump.current = true;
                 setJumpValue(event.currentTarget.value);
-                setJumpError('');
+                setJumpInvalid(false);
               }}
               onBlur={() => {
                 // 默认失焦提交；按钮模式不在这里提交，避免点击跳转前的 blur 抢先提交。
@@ -284,14 +297,14 @@ export function BadPagination({
                 }
               }}
             />
-            <span>页</span>
+            <span>{text.pageUnit}</span>
             {quickJumperTrigger === 'button' && (
               <Button type="button" variant="outline" disabled={pagingDisabled} onClick={submitJump}>
-                跳转
+                {text.jumpButton}
               </Button>
             )}
           </div>
-          {jumpError && <FieldError id={`${jumpId}-error`}>{jumpError}</FieldError>}
+          {jumpInvalid && <FieldError id={`${jumpId}-error`}>{text.invalidPage}</FieldError>}
         </Field>
       )}
     </Pagination>
