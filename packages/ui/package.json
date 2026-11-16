@@ -1,6 +1,6 @@
 {
   "name": "@badnpm/ui",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -97,6 +97,8 @@
     },
     "./styles/index.css": "./dist/styles/index.css",
     "./styles/custom.css": "./dist/styles/custom.css",
+    "./styles/scrollbar.css": "./dist/styles/scrollbar.css",
+    "./styles/theme-tokens.css": "./dist/styles/theme-tokens.css",
     "./styles/font/geist.css": "./dist/styles/font/geist.css",
     "./globals.css": "./dist/styles/index.css"
   },

@@ -1,0 +1,95 @@
+/*
+ * @theme 将 CSS 变量注册为 Tailwind 设计令牌，对应命名空间会提供相应工具类。
+ * --color-* 提供 bg-*、text-*、border-* 等颜色工具类，--radius-* 提供 rounded-*，--font-* 提供 font-*。
+ * inline 让生成的工具类直接使用右侧表达式，例如 bg-primary 使用 var(--primary)。
+ * 此文件原样发布，供使用方 Tailwind v4 编译；不使用 static，不强制输出全部变量声明。
+ * globals.css 通过 reference 引用同一份定义，供组件库生成内联工具类。
+ * -- 开头的名称是 CSS 自定义属性；var(--名称) 在元素上读取该变量，主题切换后可动态改变结果。
+ * 这里主要映射变量，具体颜色值由主题和基础色文件提供。
+ */
+@theme inline {
+  /* 标题字体令牌，font-heading 使用当前无衬线字体 --font-sans，默认字体由 Tailwind 或使用方配置。 */
+  --font-heading: var(--font-sans);
+  /* 字体名称声明不会加载字体文件，需要时另行引入 styles/font/geist.css。 */
+  --font-sans: 'Geist Variable', sans-serif;
+  /* 侧边栏焦点环颜色，例如 ring-sidebar-ring。 */
+  --color-sidebar-ring: var(--sidebar-ring);
+  /* 侧边栏边框颜色，例如 border-sidebar-border。 */
+  --color-sidebar-border: var(--sidebar-border);
+  /* 侧边栏强调区域中的文字和图标颜色，例如 text-sidebar-accent-foreground。 */
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  /* 侧边栏强调区域背景色，例如 bg-sidebar-accent。 */
+  --color-sidebar-accent: var(--sidebar-accent);
+  /* 侧边栏主色区域中的文字和图标颜色，例如 text-sidebar-primary-foreground。 */
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  /* 侧边栏主色，例如 bg-sidebar-primary。 */
+  --color-sidebar-primary: var(--sidebar-primary);
+  /* 侧边栏默认文字颜色，例如 text-sidebar-foreground。 */
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  /* 侧边栏默认背景色，例如 bg-sidebar。 */
+  --color-sidebar: var(--sidebar);
+  /* 第 5 组图表配色，例如 fill-chart-5、stroke-chart-5；具体颜色由主题变量提供。 */
+  --color-chart-5: var(--chart-5);
+  /* 第 4 组图表配色，例如 fill-chart-4、stroke-chart-4；具体颜色由主题变量提供。 */
+  --color-chart-4: var(--chart-4);
+  /* 第 3 组图表配色，例如 fill-chart-3、stroke-chart-3；具体颜色由主题变量提供。 */
+  --color-chart-3: var(--chart-3);
+  /* 第 2 组图表配色，例如 fill-chart-2、stroke-chart-2；具体颜色由主题变量提供。 */
+  --color-chart-2: var(--chart-2);
+  /* 第 1 组图表配色，例如 fill-chart-1、stroke-chart-1；具体颜色由主题变量提供。 */
+  --color-chart-1: var(--chart-1);
+  /* 组件焦点环颜色，例如 ring-ring；outline-ring 也使用此颜色。 */
+  --color-ring: var(--ring);
+  /* 输入控件边框等区域使用的颜色，例如 border-input。 */
+  --color-input: var(--input);
+  /* 通用边框颜色，例如 border-border；不负责创建边框或设置宽度。 */
+  --color-border: var(--border);
+  /* 危险操作或错误状态颜色，例如 text-destructive、bg-destructive。 */
+  --color-destructive: var(--destructive);
+  /* 强调区域上的文字和图标颜色，例如 text-accent-foreground。 */
+  --color-accent-foreground: var(--accent-foreground);
+  /* 交互强调区域颜色，例如 hover:bg-accent。 */
+  --color-accent: var(--accent);
+  /* 弱化文字颜色，例如说明文字使用 text-muted-foreground。 */
+  --color-muted-foreground: var(--muted-foreground);
+  /* 弱化区域背景色，例如 bg-muted。 */
+  --color-muted: var(--muted);
+  /* 次要区域上的文字和图标颜色，例如 text-secondary-foreground。 */
+  --color-secondary-foreground: var(--secondary-foreground);
+  /* 次要操作或区域颜色，例如 bg-secondary。 */
+  --color-secondary: var(--secondary);
+  /* 主色背景上的文字和图标颜色，例如 text-primary-foreground。 */
+  --color-primary-foreground: var(--primary-foreground);
+  /* 主要操作的品牌色，例如 bg-primary。 */
+  --color-primary: var(--primary);
+  /* 浮层文字颜色，例如 text-popover-foreground。 */
+  --color-popover-foreground: var(--popover-foreground);
+  /* 浮层背景色，例如 bg-popover。 */
+  --color-popover: var(--popover);
+  /* 卡片文字颜色，例如 text-card-foreground。 */
+  --color-card-foreground: var(--card-foreground);
+  /* 卡片背景色，例如 bg-card。 */
+  --color-card: var(--card);
+  /* 默认前景色，例如 text-foreground；注册此令牌不会自动设置 body。 */
+  --color-foreground: var(--foreground);
+  /* 默认背景色，例如 bg-background；注册此令牌不会自动设置 body。 */
+  --color-background: var(--background);
+  /* rounded-sm 的圆角，取基础圆角 --radius 的 0.6 倍；calc() 执行 CSS 数值计算，保留长度单位。 */
+  --radius-sm: calc(var(--radius) * 0.6);
+  /* rounded-md 的圆角，取基础圆角 --radius 的 0.8 倍；calc() 执行 CSS 数值计算，保留长度单位。 */
+  --radius-md: calc(var(--radius) * 0.8);
+  /* rounded-lg 的圆角，直接使用基础圆角 --radius；PreferenceProvider 可用 rem 长度更新该变量。 */
+  --radius-lg: var(--radius);
+  /* rounded-xl 的圆角，取基础圆角 --radius 的 1.4 倍；calc() 执行 CSS 数值计算，保留长度单位。 */
+  --radius-xl: calc(var(--radius) * 1.4);
+  /* rounded-2xl 的圆角，取基础圆角 --radius 的 1.8 倍；calc() 执行 CSS 数值计算，保留长度单位。 */
+  --radius-2xl: calc(var(--radius) * 1.8);
+  /* rounded-3xl 的圆角，取基础圆角 --radius 的 2.2 倍；calc() 执行 CSS 数值计算，保留长度单位。 */
+  --radius-3xl: calc(var(--radius) * 2.2);
+  /* rounded-4xl 的圆角，取基础圆角 --radius 的 2.6 倍；calc() 执行 CSS 数值计算，保留长度单位。 */
+  --radius-4xl: calc(var(--radius) * 2.6);
+} /* 结束 Tailwind 设计令牌映射。 */
+
+
+/* 跟随 ThemeProvider 设置的 .dark 类，供库和使用方生成 dark: 工具类。 */
+@custom-variant dark (&:is(.dark *));

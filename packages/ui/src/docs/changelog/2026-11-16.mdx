@@ -1,0 +1,45 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Development/Changelog/2026-11-16" />
+
+# 2026-11-16 · v0.0.3 · 样式入口拆分与本地联调指南
+
+## 样式与构建
+
+- 分离公共样式与扫描配置：库入口 `styles/index.css` 只扫描运行源码并排除 Story；Storybook 使用独立的 `.storybook/styles.css`，保留组件、Story、MDX 文档和预览代码所需的工具类。
+- 新增 **`@badnpm/ui/styles/theme-tokens.css`** 可选入口，原样发布 `@theme inline` 与 `@custom-variant dark`，供使用方 Tailwind v4 生成应用自己的颜色、字体、圆角及深色变体工具类，无需重复定义配置。
+- 令牌映射只维护一份，组件库通过 `reference` 引用同一文件。构建时原样复制配置文件，并将其加入 Rollup 监听范围；发布配置不经过 Tailwind 编译。
+- 新增 **`@badnpm/ui/styles/scrollbar.css`** 独立入口，使用原生 CSS 和自有 `--bad-scrollbar-*` 变量，可在根元素或滚动容器上覆盖，不依赖 Tailwind 或组件库主题。
+- 滚动条增加标准属性回退；修正 `.hidden-scrollbar`，隐藏滚动条外观并保留滚动能力。`custom.css` 继续包含滚动条，无需重复导入。
+- 字体映射补充 `Geist Variable` 字体名；字体文件仍通过可选的 `styles/font/geist.css` 加载。
+
+## 文档
+
+- 新增 **Development → Local Development**，分别说明 `pnpm link` 与 `file:` 的连接机制、运行依赖及 React peer dependencies 处理差异。
+- 补充库重新 build 后的消费端更新步骤：link 无需重新链接；file 需要同步安装文件。区分安装同步与 Vite 预构建缓存更新，并提供包解析路径检查方法。
+- 补充输出目录不一定为 dist 的说明，展示 lib 目录的入口配置，以及构建目录、exports、类型、CSS 和 files 的对应关系。
+- 更新 **Design → Styles**，说明各样式入口、Tailwind 配置复用方式及滚动条变量；补充 `inline`、`reference` 的源码注释。
+
+## 验证
+
+- UI 库构建、Storybook 静态构建通过。
+- 验证 Story 与 MDX 专用工具类仅由 Storybook 入口收集，不进入库 CSS。
+- 验证发布的 theme-tokens.css 与源码逐字一致，并在临时消费项目中通过实际包导出导入，成功生成颜色、圆角、字体及 dark 变体工具类。
+- 对比组件工具类：除按本次配置调整的 font-sans 字体名外，其余规则保持一致。
+- 在 Chromium 中验证独立滚动条 CSS 的尺寸与颜色覆盖，以及隐藏外观后仍可滚动。
+
+## 升级与发布说明
+
+- 当前组件包版本为 **0.0.3**，后续正式发布的 Release 标签应与版本对应为 **v0.0.3**。
+- 仅使用内置组件时，继续引入 `@badnpm/ui/styles/index.css` 即可，无需增加 Tailwind 配置入口。
+- 使用方需要复用 Tailwind 配置时，在应用全局 CSS 中按顺序导入：
+
+```css
+@import "tailwindcss";
+@import "@badnpm/ui/styles/index.css";
+@import "@badnpm/ui/styles/theme-tokens.css";
+```
+
+- theme-tokens.css 需要使用方 Tailwind v4 编译，不是浏览器直接使用的变量声明文件；底层主题变量仍由默认样式或应用提供。
+- 滚动条默认使用独立配色，不再自动跟随组件库主题；需要主题联动时，由使用方覆盖 `--bad-scrollbar-*` 变量。
+- 本次状态为 **待发布 / 待部署**，尚未执行 npm 发布或 Storybook 线上部署。普通 push 不触发 npm 发布；现有发布工作流由正式 GitHub Release 发布事件触发。

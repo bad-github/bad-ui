@@ -5,7 +5,7 @@ import type { IndexEntry } from 'storybook/internal/types';
 import { withTheme } from './decorators/with-theme';
 import { ThemedDocsContainer } from './components/themed-docs-container';
 // 加载组件运行后的完整主题、页面配色和字体，保留 Vite 的样式热更新。
-import '../src/styles/index.css';
+import './styles.css';
 import '../src/styles/custom.css';
 import '../src/styles/font/geist.css';
 

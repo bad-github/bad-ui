@@ -1,36 +1,52 @@
-@layer base {
-  ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-  }
+/* 独立原生 CSS，无需 Tailwind 或组件库主题。变量可在 :root 或滚动容器上覆盖。 */
+:root {
+  --bad-scrollbar-size: 8px;
+  --bad-scrollbar-track: transparent;
+  --bad-scrollbar-thumb: #737373;
+  --bad-scrollbar-thumb-hover: #525252;
+  --bad-scrollbar-radius: 9999px;
+  --bad-scrollbar-border-width: 1px;
+}
 
-  ::-webkit-scrollbar-track {
-    background: transparent;
-  }
+::-webkit-scrollbar {
+  width: var(--bad-scrollbar-size);
+  height: var(--bad-scrollbar-size);
+}
 
-  ::-webkit-scrollbar-thumb {
-    background-color: var(--muted-foreground);
-    border-radius: 9999px;
-    border: 1px solid transparent;
-    background-clip: content-box;
-  }
+::-webkit-scrollbar-track {
+  background: var(--bad-scrollbar-track);
+}
 
-  ::-webkit-scrollbar-thumb:hover {
-    background-color: var(--accent-foreground);
-  }
+::-webkit-scrollbar-thumb {
+  background-color: var(--bad-scrollbar-thumb);
+  border-radius: var(--bad-scrollbar-radius);
+  border: var(--bad-scrollbar-border-width) solid transparent;
+  background-clip: content-box;
+}
 
-  /* 横纵滚动条交叉处 */
-  ::-webkit-scrollbar-corner {
-    background-color: transparent;
-  }
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--bad-scrollbar-thumb-hover);
+}
 
-  .hidden-scrollbar::-webkit-scrollbar {
-    /* scrollbar-width: none; */
-    width: 16px;
-    height: 16px;
-  }
+::-webkit-scrollbar-corner {
+  background: var(--bad-scrollbar-track);
+}
 
-  .hidden-scrollbar::-webkit-scrollbar-track {
-    background: var(--primary);
+/* 不支持 WebKit 伪元素时使用标准属性；宽度由浏览器解释为 thin。 */
+@supports not selector(::-webkit-scrollbar) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--bad-scrollbar-thumb) var(--bad-scrollbar-track);
   }
+}
+
+/* 隐藏外观，保留滚动能力。 */
+.hidden-scrollbar {
+  scrollbar-width: none;
+}
+
+.hidden-scrollbar::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }

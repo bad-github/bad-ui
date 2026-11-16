@@ -1,0 +1,250 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Development/Local Development" />
+
+# 本地联调 UI 库
+
+在独立的业务项目中验证本地 `@badnpm/ui`，无需先发布 npm，也无需每次生成 `.tgz`。这里分别介绍 `pnpm link` 和 `file:`，命令按本仓库 pnpm `11.25.0` 环境编写。
+
+## 先看区别
+
+| 对比项 | `pnpm link` | `file:` 本地目录依赖 |
+| --- | --- | --- |
+| 使用方命令 | `pnpm link /路径/bad-ui/packages/ui` | `pnpm add file:/路径/bad-ui/packages/ui` |
+| 连接方式 | 软链接，直接指向本地库目录 | 将本地包导入使用方虚拟存储，文件可能通过硬链接复用 |
+| 库的运行依赖 | 在库目录自行安装，link 不负责安装 | 由使用方 pnpm 安装并解析依赖 |
+| React 等 peer dependencies | 可能解析到库开发环境中的 React，需检查重复实例 | 更适合按使用方依赖环境解析 peer dependencies |
+| 本地修改如何更新 | 库重新构建后，链接指向的 `dist` 随之更新 | 库重新构建后，重新安装以同步文件，不能只依赖硬链接 |
+| 是否保证页面热更新 | 不保证，取决于消费端监听和缓存 | 不保证，先同步安装产物，再刷新或重启 |
+| 依赖配置变更 | pnpm 11 会在 workspace 配置中记录链接覆盖；未声明的依赖还可能写入 package.json | package.json 中记录 `file:` 路径，并更新锁文件 |
+| 更适合 | 两个项目间频繁改动、快速联调 | 验证使用方的依赖解析，尤其是 React 组件库 |
+
+**最关键的区别：link 直接访问库目录；file 是将本地库作为依赖安装。两者都不会自动把本项目的 TSX 源码变成可消费的 JS。**
+
+官方说明：[pnpm link 与 file 的区别](https://pnpm.io/cli/link)、[本地目录依赖](https://pnpm.io/package-sources#local-file-system)。具体的文件复用机制受 pnpm 版本、文件系统和导入设置影响。
+
+## 共同准备：先构建 dist
+
+下面假设库仓库在 `/path/to/bad-ui`，使用方在 `/path/to/my-app`，执行前替换成真实路径。链接目标是 **packages/ui 包目录**，不是仓库根目录，也不是 dist 目录。
+
+在库仓库根目录执行：
+
+```sh
+cd /path/to/bad-ui
+pnpm install --frozen-lockfile
+pnpm --filter @badnpm/ui build
+```
+
+当前 package.json 的 JS、类型声明和 CSS 入口都指向 `dist`。无论 link 还是 file，修改 `src` 后都要重新构建。使用方需要提供兼容的 React / React DOM `19.x`。
+
+### 输出目录不一定叫 dist
+
+`dist` 是本项目当前的构建配置，不是 pnpm 的要求。其他 UI 库可能输出到 `lib`、`build` 或其他目录。link / file 都应指向**包含 package.json 的包根目录**，实际加载文件由包入口决定。
+
+例如，一个输出到 `lib` 的 UI 包可以声明：
+
+```json
+{
+  "name": "@example/ui",
+  "main": "./lib/cjs/index.cjs",
+  "module": "./lib/esm/index.js",
+  "types": "./lib/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "import": "./lib/esm/index.js",
+      "require": "./lib/cjs/index.cjs"
+    },
+    "./styles/index.css": "./lib/styles/index.css"
+  },
+  "files": ["lib"]
+}
+```
+
+这是入口字段示例，具体路径应与该库实际生成的文件一致。对于支持 exports 的解析器，已声明的导入入口优先按 exports 解析；main、module、types 用于相应工具或兼容场景，不能只修改其中一个字段就认为所有入口已同步。
+
+如果本项目将输出目录从 dist 改为 lib，需要同步检查：
+
+- **构建配置**：Rollup 的输出目录、类型声明目录、CSS 提取路径和字体资源位置。
+- **包入口**：exports、main、module、types，以及本项目的 unpkg、jsdelivr 字段。
+- **打包范围**：files 是否包含新的输出目录；它影响 file 安装及后续发布包的文件范围，不负责指定 JS 入口。
+- **联调流程**：下文“重建 dist”均应理解为重建该库真实的输出目录。link 的目标仍是 packages/ui；file 方式则需要在构建后重新同步安装。
+
+因此，遇到“已构建但使用方找不到文件”时，应先核对 package.json 的入口路径与实际输出文件，而不是把链接目标改成 lib 或 build。除非构建系统专门生成了包含独立 package.json 的可分发目录，否则不要直接链接输出目录。
+
+## 方式一：pnpm link
+
+### 建立链接
+
+在使用方目录执行：
+
+```sh
+cd /path/to/my-app
+pnpm link /path/to/bad-ui/packages/ui
+```
+
+直接传本地目录即可，无需先注册全局包。组件和样式仍通过正常包名导入，不需要改成相对路径。
+
+pnpm 11 的 link 会写入 workspace 的 overrides，可能影响该工作区内其他使用 `@badnpm/ui` 的项目；执行后检查 `pnpm-workspace.yaml`、package.json 和锁文件的变更。不要将临时本机路径当作正式依赖配置提交。
+
+### 修改后的联调流程
+
+库重新 build 后，使用方读到的仍是同一目录中的新文件，**无需重新 link，也无需执行 pnpm update 或重新安装 UI 包**。为排除开发服务缓存，下面给出一次完整更新步骤。
+
+先停止使用方正在运行的开发服务（终端中按 Ctrl+C），再在库侧终端执行：
+
+```sh
+cd /path/to/bad-ui
+pnpm --filter @badnpm/ui build
+```
+
+等待整个 build 成功退出，再回到使用方终端：
+
+```sh
+cd /path/to/my-app
+pnpm dev
+```
+
+打开页面验证刚修改的组件。这里假设使用方已有 dev 脚本；其他项目使用自己的启动命令。Vite 项目如果仍显示旧内容，停止服务后改用 `pnpm dev --force`，重新生成预构建缓存，然后刷新页面。`--force` 的写法仅适用于 dev 脚本直接启动 Vite。
+
+停止服务是一次确定性验证流程；日常已确认使用方能监听链接目录时，可以保留服务运行，等库 build 完成后查看热更新或手动刷新。**库构建成功、使用方发现文件变化、浏览器更新是三个环节，build 成功不代表页面已经更新。**
+
+链接仍指向同一个包目录，普通代码修改无需每轮重新 link。新增运行依赖时，需要先在库侧安装；新增公开导出时，也要核对 package.json 的 exports。
+
+频繁改动时，可在库根目录另开终端运行 Rollup 监听：
+
+```sh
+pnpm --filter @badnpm/ui exec rollup -c --watch
+```
+
+这是现有构建配置的监听模式。首次构建完成后再启动使用方；监听构建不等于使用方必然热更新。若新增文件或样式没有被监听到，停止监听并执行一次完整 build。
+
+### 解除链接
+
+在使用方目录执行：
+
+```sh
+pnpm unlink @badnpm/ui
+```
+
+这会移除 link 覆盖并按依赖声明重新安装。若 package.json 本身仍是 `link:` 路径，需恢复原来的线上版本范围，再执行 `pnpm install`；特别是此前从未声明过该包的项目，不要只凭 unlink 成功就认为已恢复线上依赖。
+
+官方说明：[pnpm unlink](https://pnpm.io/cli/unlink)。
+
+## 方式二：file 本地目录依赖
+
+### 安装本地库
+
+完成前面的库构建后，在使用方目录执行：
+
+```sh
+cd /path/to/my-app
+pnpm add file:/path/to/bad-ui/packages/ui
+```
+
+package.json 会记录类似配置：
+
+```json
+{
+  "dependencies": {
+    "@badnpm/ui": "file:/path/to/bad-ui/packages/ui"
+  }
+}
+```
+
+也可以使用相对路径，例如 `pnpm add file:../bad-ui/packages/ui`。注意必须显式带 `file:`；直接执行 `pnpm add ../bad-ui/packages/ui` 会使用 `link:`，不是这里的安装方式。
+
+file 方式由使用方安装本地包的运行依赖，peer dependencies 更容易与使用方的 React 环境保持一致。因此，遇到 link 导致的 React 重复实例问题时，可以优先尝试 file。
+
+### 修改后的联调流程
+
+库重新 build 后，使用方需要**重新同步已安装的本地包**。只刷新页面或重启开发服务，不能保证读取到新的库文件。
+
+先停止使用方开发服务，再在库侧终端执行：
+
+```sh
+cd /path/to/bad-ui
+pnpm --filter @badnpm/ui build
+```
+
+等待整个 build 成功退出，再在使用方终端执行：
+
+```sh
+cd /path/to/my-app
+pnpm install --force
+pnpm dev
+```
+
+`--force` 会强制重装依赖，操作范围不限于 UI 包，适合明确同步本地构建结果时使用。它可能访问 registry。
+
+这里沿用 package.json 中已有的 `file:` 路径，无需每轮重新执行 pnpm add，也无需增加 UI 库版本号。安装完成后再启动开发服务；Vite 若仍使用旧缓存，停止服务并以 `pnpm dev --force` 启动。两处 `--force` 的作用不同：`pnpm install --force` 同步安装文件，`pnpm dev --force` 在上述 Vite 场景下重建开发预构建缓存，不能互相替代。
+
+**file 不是稳定的源码热链接。** 即便某些文件通过硬链接复用，构建工具删除、替换文件或新增文件时，也不能保证使用方的副本同步更新。本项目完整构建会清理并重建 dist，因此采用“构建 → 同步安装 → 刷新”的流程更可靠；仅在库侧开启 watch 不足以完成 file 方式的同步。
+
+### 恢复线上依赖
+
+恢复联调前 package.json 中的版本范围，再执行 `pnpm install`。如果准备使用已发布的最新版本，可执行：
+
+```sh
+pnpm add @badnpm/ui@latest
+```
+
+file 依赖不是 link 覆盖，不要用 `pnpm unlink` 代替恢复依赖声明。检查 package.json 与锁文件，确认没有遗留临时路径。
+
+## 每次 build 后，使用方需要做什么
+
+| 本轮库改动 | link 使用方 | file 使用方 |
+| --- | --- | --- |
+| 组件实现、组件 CSS | 等待库构建完成，刷新或重启开发服务；无需重新链接 | 等待库构建完成，执行 pnpm install --force，再启动开发服务 |
+| theme-tokens.css 等构建配置 CSS | 等待发布文件更新后，重新启动应用的 Tailwind 构建/开发服务，确认重新读取配置 | 先同步安装文件，再重新启动应用的 Tailwind 构建/开发服务 |
+| 新增运行依赖 | 库侧先安装依赖并构建；使用方重启验证解析 | 库侧构建后，使用方重新安装同步包与依赖 |
+| 新增导出或修改 exports | 库侧构建；使用方重启并检查新入口 | 库侧构建；使用方重新安装以更新包清单及文件，再重启 |
+| 库目录移动 | 对新包目录重新执行 pnpm link | 将 file 路径改为新包目录后重新安装 |
+
+以上均无需为本地联调修改版本号，也不需要访问 npm 获取本地库的新版本。不要用 `pnpm add @badnpm/ui@latest` 更新本地联调结果：那会转向线上依赖；存在 link 覆盖时还可能继续被覆盖。
+
+### 如何确认使用方拿到了新文件
+
+在使用方目录执行，查看 Node 按包导出解析的 JS 和 CSS 路径：
+
+```sh
+node --input-type=module -e "console.log(import.meta.resolve('@badnpm/ui'))"
+node --input-type=module -e "console.log(import.meta.resolve('@badnpm/ui/styles/index.css'))"
+```
+
+link 通常解析到本地库真实目录；file 通常解析到使用方的 pnpm 虚拟存储目录。打开输出路径对应的文件，与库的最新构建结果核对。这个命令只检查 Node 的包解析，不包含 Vite / Webpack 的 alias；还应确认应用构建配置没有把包名重定向到源码或其他版本。
+
+若安装文件已更新但页面仍旧，检查开发服务与浏览器缓存；若安装文件本身仍旧，先检查链接目标或 file 同步步骤。仅看版本号不能判断是否更新成功，因为本地可以在同一版本号下反复构建。
+
+本项目完整 build 会先清理输出目录，所以不要在构建尚未结束时启动、安装或构建使用方。若要验证生产包，按同样顺序完成库构建和必要的安装同步，再执行使用方的生产 build 与预览命令。
+
+## 使用方接入与验证
+
+两种方式使用同样的组件入口和 CSS 入口：
+
+```tsx
+import { Button } from '@badnpm/ui';
+import '@badnpm/ui/styles/index.css';
+// 以下根据需要引入：
+import '@badnpm/ui/styles/custom.css';
+import '@badnpm/ui/styles/font/geist.css';
+
+export function LocalExample() {
+  return <Button>本地联调</Button>;
+}
+```
+
+只需滚动条时，可单独引入 `@badnpm/ui/styles/scrollbar.css`；custom.css 已包含滚动条，无需重复引入。JS 入口不会自动加载 CSS。使用方自身使用 Tailwind v4 时，可在应用全局 CSS 中额外 `@import "@badnpm/ui/styles/theme-tokens.css";`，复用主题令牌与 dark 变体配置；此文件需要 Tailwind 编译，不作为普通 JS 样式入口导入。
+
+确认使用方没有指向 `packages/ui/src` 的 alias，否则验证的是源码而非本地包入口。运行使用方已有的类型检查与生产构建，并在页面检查组件交互、深浅模式、弹层、CSS 和字体资源。
+
+出现问题时先区分原因：
+
+- **修改没有生效**：link 检查 dist 是否已更新；file 还要检查是否重新安装同步。
+- **Vite 保留旧预构建**：完成上述同步后，停止服务并以 `pnpm dev --force` 重启；该命令仅适用于 dev 脚本直接启动 Vite 的应用。
+- **Invalid hook call**：检查使用方与库是否加载了不同的 React 实例。版本号相同也可能是两个实例；link 不会自动解决该问题，file 更适合先验证 peer dependencies 的解析。
+- **缺少 CSS 或公开导出**：检查构建产物、exports 和使用方的样式导入；不要通过 alias 到源码掩盖发布入口问题。
+
+## 与其他验证方式的关系
+
+Storybook 和仓库内 apps/web 直接使用源码，适合组件开发；link / file 用于外部业务项目联调。发布前仍可用 `npm pack` 生成 .tgz，验证 files 配置下实际会发布的文件范围。以上本地联调命令均不发布 npm，也不部署 Storybook。

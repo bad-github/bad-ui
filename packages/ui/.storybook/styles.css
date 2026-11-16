@@ -1,0 +1,6 @@
+/* Storybook 入口：复用公共样式，单独收集组件、示例、文档和预览代码。 */
+@import "tailwindcss" source(none);
+@import "../src/styles/globals.css";
+
+@source "../src/**/*.{ts,tsx,mdx}";
+@source "./**/*.{ts,tsx}";

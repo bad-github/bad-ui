@@ -1,1 +1,6 @@
+/* 库入口：关闭自动扫描，仅收集运行源码中的工具类。 */
+@import "tailwindcss" source(none);
 @import "./globals.css";
+
+@source "../**/*.{ts,tsx}";
+@source not "../**/*.stories.{ts,tsx}";

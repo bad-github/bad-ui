@@ -11,6 +11,7 @@ import { Meta } from '@storybook/addon-docs/blocks';
 - **`@badnpm/ui/styles/index.css`**：必需入口，包含 Tailwind 重置、组件工具类、动画扩展、Base UI 通用样式、主题和基础色变量。
 - **`@badnpm/ui/styles/custom.css`**：可选入口，让 body 的背景色、文字色跟随主题，并提供滚动条样式；需与默认样式配合使用。
 - **`@badnpm/ui/styles/font/geist.css`**：可选字体入口，详见 **Design → Typography**。
+- **`@badnpm/ui/styles/theme-tokens.css`**：可选的 Tailwind v4 配置入口，原样保留 `@theme inline` 与 `@custom-variant`，供应用生成自己的工具类；需在应用 CSS 中通过 `@import` 引入。
 - **`@badnpm/ui/globals.css`**：默认样式的兼容入口，与 `styles/index.css` 二选一即可。
 
 ```tsx
@@ -55,7 +56,48 @@ CSS 可以直接消费变量，不依赖应用安装 Tailwind：
 
 ## 源码与构建
 
-- 入口与令牌映射：`src/styles/index.css`、`src/styles/globals.css`。
-- 页面与滚动条：`src/styles/custom.css`、`src/styles/scrollbar.css`。当前滚动条主要使用 WebKit 伪元素，其他浏览器可能保留系统外观。
+- 库入口：`src/styles/index.css`，关闭自动扫描，仅扫描运行源码，排除 stories。
+- Storybook 入口：`.storybook/styles.css`，单独扫描组件、stories、MDX 文档和预览代码。
+- 公共样式：`src/styles/globals.css`，不声明扫描范围，由两个入口复用。
+- 令牌映射：`src/styles/theme-tokens.css`，仅维护一份定义；公共样式通过 `reference` 引用以生成内联工具类，同一文件原样发布，供使用方复用 Tailwind 配置。
+- 页面与滚动条：`src/styles/custom.css`、`src/styles/scrollbar.css`。滚动条使用独立的原生 CSS，自有变量以 `--bad-scrollbar-` 开头，不依赖主题；不支持 WebKit 伪元素的浏览器使用标准滚动条属性。
 - 发布：Rollup / PostCSS 编译样式并复制字体资源，输出到 `dist/styles`。
 - Storybook：Vite 直接加载源码样式；预览正常不等于发布包资源一定正常，发布前仍需验证构建产物。
+
+## 独立使用滚动条样式
+
+可单独引入 `@badnpm/ui/styles/scrollbar.css`，无需默认组件样式；也可复制源码 CSS，通过普通 `<link>` 使用。`custom.css` 已包含滚动条，无需重复导入。
+
+```css
+:root {
+  --bad-scrollbar-size: 8px;
+  --bad-scrollbar-thumb: #737373;
+  --bad-scrollbar-thumb-hover: #525252;
+  --bad-scrollbar-track: transparent;
+}
+```
+
+变量也可在特定滚动容器上覆盖。`.hidden-scrollbar` 隐藏滚动条但保留滚动能力；标准属性回退使用 `thin` 宽度，不支持精确尺寸、悬停色和圆角。
+
+## 按需复用 Tailwind 配置
+
+库的 index.css 已包含组件所需的编译后样式。如果应用自身也使用 Tailwind v4，并需要生成 bg-primary、rounded-lg、font-heading、dark:* 等工具类，可以额外导入配置：
+
+```css
+/* 应用自己的全局 CSS，由应用的 Tailwind v4 构建处理。 */
+@import "tailwindcss";
+@import "@badnpm/ui/styles/index.css";
+@import "@badnpm/ui/styles/theme-tokens.css";
+/* 可选：加载 Geist 字体文件。 */
+@import "@badnpm/ui/styles/font/geist.css";
+```
+
+```tsx
+<div className="bg-primary text-primary-foreground rounded-lg font-heading dark:opacity-90">
+  应用自己的内容
+</div>
+```
+
+该文件包含颜色、字体和圆角的 `@theme inline` 映射，以及跟随 `.dark` 类的 `@custom-variant dark`；无需在应用中重复定义。它不包含底层配色、组件样式或字体文件，底层变量由 index.css 或应用自己的主题提供。字体名称声明为 Geist Variable，实际字体文件需另外加载。
+
+这是**供 Tailwind 编译的配置**，不是浏览器直接读取的变量声明文件。请在应用 CSS 中使用 @import，不要通过 JS 导入或普通 link 标签期待其注册 Tailwind 配置。不使用 Tailwind 的应用仍然只需预编译的 index.css，无需此入口。这里无需 static，应用按其自身源码生成所需的工具类。

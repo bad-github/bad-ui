@@ -31,9 +31,9 @@ const externalPackages = Object.keys({ ...dependencies, ...peerDependencies });
 // 通过依赖解析找到 Geist 包目录，读取其中的上游许可证。
 // import.meta.resolve 返回依赖的文件 URL，转换为本机路径后取得所在目录。
 const fontDirectory = dirname(fileURLToPath(import.meta.resolve('@fontsource-variable/geist/index.css')));
-// 三个公开样式入口，省略 .css 后缀以复用为输入和输出路径。
+// 公开样式入口，省略 .css 后缀以复用为输入和输出路径。
 // 默认样式已包含主题和基础色；页面配色与字体由使用方按需引入。
-const cssEntries = ['styles/index', 'styles/custom', 'styles/font/geist'];
+const cssEntries = ['styles/index', 'styles/custom', 'styles/scrollbar', 'styles/font/geist'];
 
 // 配置加载时清理一次旧产物，避免已删除的源码文件仍残留在发布包中。
 // recursive 允许删除非空目录，force 允许目录不存在。
@@ -41,14 +41,14 @@ const cssEntries = ['styles/index', 'styles/custom', 'styles/font/geist'];
 rmSync(outputDirectory, { recursive: true, force: true });
 
 const moduleBuild = defineConfig({
-  // 构建入口：JS 从 index.ts 追踪全部导出，CSS 从三个独立入口分别处理。
+  // 构建入口：JS 从 index.ts 追踪全部导出，CSS 从独立入口分别处理。
   // map 将相对样式路径转换为绝对文件路径，... 将生成的数组展开到入口数组中。
   input: [join(sourceDirectory, 'index.ts'), ...cssEntries.map((path) => join(sourceDirectory, `${path}.css`))],
   // 只外置明确声明的运行依赖和 peer dependencies，保留 import 交给使用方解析。
   // 同时匹配包名和该包的子路径，例如 react/jsx-runtime、@base-ui/react/button。
   // 子路径必须以“包名/”开头，避免把 react-other 误判为 react。
   external: (id) => externalPackages.some((name) => id === name || id.startsWith(`${name}/`)),
-  // 注册构建插件；数组中的 map 会为三个 CSS 入口分别创建一个 PostCSS 实例。
+  // 注册构建插件；数组中的 map 会为各个 CSS 入口分别创建一个 PostCSS 实例。
   plugins: [
     // 每个实例独立提取一个 CSS 文件，避免将可选字体和 body 样式合入默认样式。
     ...cssEntries.map((path) =>
@@ -74,6 +74,10 @@ const moduleBuild = defineConfig({
     {
       // CSS 和字体由生态插件编译，这里处理 CSS 入口占位模块及字体许可证。
       name: 'style-assets',
+      buildStart() {
+        // 原样发布 Tailwind 配置，监听定义修改以同步更新发布文件。
+        this.addWatchFile(join(sourceDirectory, 'styles/theme-tokens.css'));
+      },
       // generateBundle 在写入磁盘前执行，可剔除占位模块并添加资源文件。
       generateBundle(_options, bundle) {
         // PostCSS 的 extract 会留下 export default undefined，CSS 入口只保留提取出的样式。
@@ -83,6 +87,12 @@ const moduleBuild = defineConfig({
             delete bundle[fileName];
           }
         }
+        // 使用方需要 @theme 和 @custom-variant 原始指令，不能经过 Tailwind 编译。
+        this.emitFile({
+          type: 'asset',
+          fileName: 'styles/theme-tokens.css',
+          source: readFileSync(join(sourceDirectory, 'styles/theme-tokens.css')),
+        });
         // CJS 的逐文件 .d.ts 使用 CommonJS 模块上下文，支持 NodeNext 的 require 类型解析。
         this.emitFile({ type: 'asset', fileName: 'cjs/types/package.json', source: '{"type":"commonjs"}\n' });
         // emitFile 是 Rollup 插件 API，将文件交给 Rollup 统一输出。
