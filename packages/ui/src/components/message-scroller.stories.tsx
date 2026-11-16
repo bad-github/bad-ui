@@ -181,15 +181,29 @@ export const PrependHistory: Story = {
   play: async ({ canvas, userEvent }) => {
     if (!shouldRunInteractions) return;
     const viewport = canvas.getByRole('region', { name: '消息列表' });
+    // 初始定位、字体加载和 ResizeObserver 都会影响消息几何尺寸。
+    // 先等待初始化完成，避免把初始化中的位置当作“加载历史前”的基准。
+    await viewport.ownerDocument.fonts.ready;
     await waitFor(() => expect(viewport.scrollTop).toBeGreaterThan(0));
-    const lastMessage = canvas.getByText(/^第 12 条消息/);
-    await waitFor(() =>
-      expect(lastMessage.getBoundingClientRect().bottom).toBeLessThanOrEqual(viewport.getBoundingClientRect().bottom)
-    );
-    const before = lastMessage.getBoundingClientRect().top;
+    await waitFor(() => expect(viewport).not.toHaveAttribute('data-autoscrolling'));
+    // 先模拟用户向上阅读，并等待真实 scroll 事件，让组件记录当前可见锚点。
+    // scrollTop > 0 只能说明初始定位已写入，不能保证 scroll 事件和锚点快照已同步。
+    await new Promise<void>((resolve) => {
+      viewport.addEventListener('scroll', () => resolve(), { once: true });
+      viewport.scrollTo({ top: viewport.scrollTop / 2, behavior: 'instant' });
+    });
+    const bounds = viewport.getBoundingClientRect();
+    const anchor = [...viewport.querySelectorAll<HTMLElement>('[data-message-id]')].find((item) => {
+      const rect = item.getBoundingClientRect();
+      return rect.top >= bounds.top && rect.bottom <= bounds.bottom;
+    });
+    if (!anchor) throw new Error('消息列表中应有完整可见的阅读锚点');
+    // 检查消息在滚动容器中的位置，避免外层页面滚动被误判为消息跳动。
+    const offset = () => anchor.getBoundingClientRect().top - viewport.getBoundingClientRect().top;
+    const before = offset();
     await userEvent.click(canvas.getByRole('button', { name: '加载两条历史消息' }));
     await expect(canvas.getByRole('status')).toHaveTextContent('当前共 14 条消息');
-    await waitFor(() => expect(Math.abs(lastMessage.getBoundingClientRect().top - before)).toBeLessThan(3));
+    await waitFor(() => expect(Math.abs(offset() - before)).toBeLessThan(3));
   },
 };
 export const Streaming: Story = {

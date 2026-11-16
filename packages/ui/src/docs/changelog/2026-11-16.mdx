@@ -20,9 +20,14 @@ import { Meta } from '@storybook/addon-docs/blocks';
 - 补充输出目录不一定为 dist 的说明，展示 lib 目录的入口配置，以及构建目录、exports、类型、CSS 和 files 的对应关系。
 - 更新 **Design → Styles**，说明各样式入口、Tailwind 配置复用方式及滚动条变量；补充 `inline`、`reference` 的源码注释。
 
+## 修复
+
+- 修复 MessageScroller 的 Prepend History 交互测试时序依赖：等待字体和初始滚动完成，模拟向上阅读并等待真实 scroll 事件同步锚点，再比较消息相对滚动容器的位置；保留原有 3px 阈值，避免普通测试和覆盖率测试因运行时序不同而出现不一致结果。
+
 ## 验证
 
 - UI 库构建、Storybook 静态构建通过。
+- 修复后普通 Storybook 测试与覆盖率测试均为 85 个文件、537 个测试通过；类型检查及修改文件的 ESLint 检查通过。临时关闭历史消息位置保持后，修复后的交互测试按预期失败，验证完已恢复。
 - 验证 Story 与 MDX 专用工具类仅由 Storybook 入口收集，不进入库 CSS。
 - 验证发布的 theme-tokens.css 与源码逐字一致，并在临时消费项目中通过实际包导出导入，成功生成颜色、圆角、字体及 dark 变体工具类。
 - 对比组件工具类：除按本次配置调整的 font-sans 字体名外，其余规则保持一致。
