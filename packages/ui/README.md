@@ -25,8 +25,49 @@ npm install @badnpm/ui react@^19 react-dom@^19
 仅引入默认样式即可使用组件。页面配色与滚动条作为一组可选样式，字体可以单独选择，字体文件随包提供。
 主题和基础色已包含在默认样式中。`@badnpm/ui/globals.css` 是默认样式的兼容入口，使用示例统一采用 `styles/index.css`。
 
-使用方无需安装 Tailwind、shadcn、tw-animate-css 或 Geist 字体包。
-应用自行编写的额外 Tailwind 类需要由应用自己的 Tailwind 配置生成。
+非 Tailwind 应用使用预编译入口，无需安装 Tailwind、shadcn、tw-animate-css 或 Geist 字体包。
+应用自身使用 Tailwind v4 时，请改用下节的统一编译入口，避免加载两套工具类。
+
+## Tailwind v4 应用接入
+
+应用自身也使用 Tailwind v4 时，统一在应用 CSS 中引入：
+
+```css
+@import '@badnpm/ui/styles/tailwind.css';
+/* 可选页面背景和滚动条。 */
+@import '@badnpm/ui/styles/custom.css';
+/* 可选 Geist 字体。 */
+@import '@badnpm/ui/styles/font/geist.css';
+```
+
+此入口原样发布，内部加载 Tailwind、主题令牌、状态变体、动画和手写组件 CSS，**不加载预编译的 `styles/index.css`**。通过包内相对路径扫描发布的 ESM 组件代码；应用源码自动扫描，使用方无需再声明库的 `@source` 或重复主题映射。所需的第三方 CSS 扩展随包携带，无需额外安装 shadcn 或 tw-animate-css。应用需要自行安装 Tailwind v4，并配置对应的 Vite 或 PostCSS 插件。
+
+请用此入口替代应用原有的 `@import 'tailwindcss'` 与库的 `styles/index.css` 导入，不必同时重复引入它们。页面背景和字体仍按需选择。不使用 Tailwind 的应用继续使用原有预编译入口。
+
+库与应用共用一次 Tailwind 编译，生成一套工具类，避免两份独立编译的规则互相覆盖，例如侧栏的 `hidden md:flex` 与移动菜单的 `flex md:hidden`。
+
+### 两种模式只能选一种
+
+| 应用环境 | 样式入口 | 工具类编译方 |
+| --- | --- | --- |
+| 无 Tailwind | `styles/index.css` | 组件库构建时预编译 |
+| Tailwind v4 | `styles/tailwind.css` | 应用统一编译库与应用 |
+
+- Tailwind 应用删除 JS 中的 `styles/index.css` / `globals.css` 导入，在自己的全局 CSS 引入 `styles/tailwind.css`，再由 JS 或 Next.js 根布局加载该全局 CSS。
+- 不要同时引入两个入口；`globals.css` 是预编译入口的别名，也不能混用。可选 custom、scrollbar、font 入口不包含另一套工具类，可以按需保留。
+- 原有应用 `@theme` 定制放在库入口之后。深浅模式仍由 `.dark` 控制，配色由主题变量控制。
+- 本方案不是命名隔离。双方共享 Tailwind 的主题、断点和工具类；不要移除库需要的令牌或修改自定义状态变体含义。支持 Tailwind v4，当前验证版本为 4.3.x；带全局 prefix 的应用需要额外适配，不属于当前接入约定。
+- 自定义扫描根目录、禁用自动扫描或忽略源码时，应用仍需配置自己的扫描范围；库扫描路径由入口内置。
+- 下文 ESM、CJS、UMD 示例采用无需 Tailwind 的预编译模式；Tailwind 应用将样式部分替换为本节方案。
+
+### 本地验证
+
+```sh
+pnpm --filter @badnpm/ui build
+pnpm --filter @badnpm/ui test-styles
+```
+
+测试会打包真实 npm tarball，在临时消费环境中编译 Tailwind 入口，并验证库和应用类名扫描、工具类单次生成、移动/桌面显示以及非 Tailwind 的预编译入口。浏览器检查需要已安装 Playwright Chromium。
 
 ## ESM
 
@@ -186,9 +227,20 @@ dist/
 ├── types/               # 按源码结构生成的 ESM 类型声明
 ├── cjs/                 # CommonJS 模块，types 子目录提供逐文件类型声明
 ├── umd/index.js         # 浏览器单文件，导出 window.BadUI
-└── styles/              # 默认样式、可选页面配色、滚动条和字体资源
+└── styles/              # 预编译入口、Tailwind 原始入口、可选样式与字体
+    └── source/          # Tailwind 入口的完整 CSS 依赖图（含第三方扩展及许可证）
 ```
 
 TypeScript 插件编译 JS，rollup-plugin-dts 配合 preserveModules 按源码目录逐文件生成类型声明。PostCSS 编译独立 CSS 并处理字体资源，样式规则集中在 `postcss.config.mjs`。
 声明生成阶段会将目录导入和源码路径别名转换为完整相对路径，兼容使用方的 NodeNext 类型解析。
 入口和依赖统一在包根目录的 `package.json` 中维护。工作区 demo 的 Vite 别名指向源码，保留本地热更新。
+
+### 样式构建配置的位置
+
+Rollup 主配置只负责组装，两个样式交付流程分别维护在 scripts 目录：
+
+- `scripts/build-precompiled-styles.mjs`：非 Tailwind 模式，配置 CSS 入口、PostCSS 预编译、独立 CSS 提取和字体许可证输出。
+- `scripts/build-tailwind-styles.mjs`：Tailwind 模式，收集原始 CSS 导入图、打包第三方扩展与许可证、改写发布路径并注册文件监听，不生成工具类。
+- `postcss.config.mjs`：预编译流程使用的 Tailwind 与字体资源处理配置。
+
+两个模块由 `rollup.config.mjs` 引用，不需要分别执行命令；一次 build 仍同时生成两种交付产物。

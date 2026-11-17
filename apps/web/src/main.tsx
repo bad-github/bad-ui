@@ -1,7 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 
-import '@badnpm/ui/styles/index.css';
+import '@badnpm/ui/styles/tailwind.css';
 import '@badnpm/ui/styles/custom.css';
 import '@badnpm/ui/styles/font/geist.css';
 import { App } from './App.tsx';

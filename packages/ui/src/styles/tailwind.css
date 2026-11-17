@@ -1,0 +1,17 @@
+/* Tailwind v4 使用方专用入口：交给应用的 Tailwind 插件编译，不能直接作为浏览器 CSS 加载。
+ * 与 index.css（二选一）最大的区别：这里不加载任何预编译工具类。
+ * 应用和库的工具类在同一次编译中生成，避免两份 hidden / flex / md:* 规则相互覆盖。
+ */
+@layer theme, base, components, utilities;
+@import 'tailwindcss';
+/* 复用与预编译入口相同的主题、状态变体、动画、基础样式和手写组件样式。
+ * 构建发布时会将这个路径改写为包内的 source/styles/globals.css，
+ * 并携带完整 CSS 依赖；使用方不需要安装 shadcn 或 tw-animate-css。
+ */
+@import './globals.css';
+
+/* 此路径以发布后的 dist/styles/tailwind.css 为基准，扫描 dist/esm。
+ * 源码演示使用 Vite 别名，并由 Vite 的模块扫描补充源码类名。
+ * 不设置 source(none)，让应用源码继续自动扫描；使用方无需额外声明库的 @source。
+ */
+@source '../esm';

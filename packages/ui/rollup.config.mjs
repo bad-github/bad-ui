@@ -1,4 +1,4 @@
-import { readFileSync, readdirSync, rmSync } from 'node:fs';
+import { readdirSync, rmSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'rollup';
@@ -11,12 +11,11 @@ import { nodeResolve } from '@rollup/plugin-node-resolve';
 import commonjs from '@rollup/plugin-commonjs';
 // 将 UMD 中依赖的环境判断替换为生产模式，避免浏览器访问 process。
 import replace from '@rollup/plugin-replace';
-// 将 PostCSS 处理流程接入 Rollup，输出独立 CSS 文件。
-import postcss from 'rollup-plugin-postcss';
 // 在保留模块结构时保留 use client 等模块级指令，供 Next.js 等环境识别。
 import preserveDirectives from 'rollup-plugin-preserve-directives';
-// 显式导入 ESM 样式配置，避免依赖旧版 PostCSS 配置加载器。
-import postcssConfig from './postcss.config.mjs';
+// 两种 CSS 交付方式独立维护，主配置只负责组装。
+import { createPrecompiledStyles } from './scripts/build-precompiled-styles.mjs';
+import { createTailwindStylesPlugin } from './scripts/build-tailwind-styles.mjs';
 // ESM 导入 JSON 需通过 with 指定类型，配置文件可直接获得依赖清单。
 import packageJson from './package.json' with { type: 'json' };
 
@@ -28,12 +27,7 @@ const outputDirectory = join(packageDirectory, 'dist');
 // package.json 是外部依赖的显式声明来源，开发工具依赖不自动外置。
 const { dependencies = {}, peerDependencies = {} } = packageJson;
 const externalPackages = Object.keys({ ...dependencies, ...peerDependencies });
-// 通过依赖解析找到 Geist 包目录，读取其中的上游许可证。
-// import.meta.resolve 返回依赖的文件 URL，转换为本机路径后取得所在目录。
-const fontDirectory = dirname(fileURLToPath(import.meta.resolve('@fontsource-variable/geist/index.css')));
-// 公开样式入口，省略 .css 后缀以复用为输入和输出路径。
-// 默认样式已包含主题和基础色；页面配色与字体由使用方按需引入。
-const cssEntries = ['styles/index', 'styles/custom', 'styles/scrollbar', 'styles/font/geist'];
+const precompiledStyles = createPrecompiledStyles({ sourceDirectory, outputDirectory });
 
 // 配置加载时清理一次旧产物，避免已删除的源码文件仍残留在发布包中。
 // recursive 允许删除非空目录，force 允许目录不存在。
@@ -42,68 +36,25 @@ rmSync(outputDirectory, { recursive: true, force: true });
 
 const moduleBuild = defineConfig({
   // 构建入口：JS 从 index.ts 追踪全部导出，CSS 从独立入口分别处理。
-  // map 将相对样式路径转换为绝对文件路径，... 将生成的数组展开到入口数组中。
-  input: [join(sourceDirectory, 'index.ts'), ...cssEntries.map((path) => join(sourceDirectory, `${path}.css`))],
+  // CSS 模块提供绝对入口路径，预编译样式与原始样式的职责分别封装。
+  input: [join(sourceDirectory, 'index.ts'), ...precompiledStyles.input],
   // 只外置明确声明的运行依赖和 peer dependencies，保留 import 交给使用方解析。
   // 同时匹配包名和该包的子路径，例如 react/jsx-runtime、@base-ui/react/button。
   // 子路径必须以“包名/”开头，避免把 react-other 误判为 react。
   external: (id) => externalPackages.some((name) => id === name || id.startsWith(`${name}/`)),
-  // 注册构建插件；数组中的 map 会为各个 CSS 入口分别创建一个 PostCSS 实例。
+  // 注册 JS 构建插件及两种 CSS 交付插件。
   plugins: [
-    // 每个实例独立提取一个 CSS 文件，避免将可选字体和 body 样式合入默认样式。
-    ...cssEntries.map((path) =>
-      postcss({
-        ...postcssConfig,
-        // 仅处理当前入口，其他入口交给各自的实例，入口中的 @import 由 Tailwind 插件解析。
-        include: join(sourceDirectory, `${path}.css`),
-        // 样式规则已从 ESM 配置导入，关闭插件的自动配置搜索。
-        config: false,
-        // 不生成向页面 head 动态注入 style 的代码，样式由使用方显式导入。
-        inject: false,
-        // 将处理结果提取为独立 CSS，绝对路径明确指定其输出位置。
-        extract: join(outputDirectory, `${path}.css`),
-        // 告知 PostCSS 最终输出路径，使字体 URL 能相对于该位置正确计算。
-        // Rollup 插件会用此选项覆盖 PostCSS 配置中的 to，因此仍在这里按入口指定。
-        to: join(outputDirectory, `${path}.css`),
-      })
-    ),
+    ...precompiledStyles.plugins,
+    createTailwindStylesPlugin({ packageDirectory, sourceDirectory }),
     // 编译 TS/TSX，声明文件由独立的 dts 构建逐文件输出。
     typescript({ tsconfig: resolve(packageDirectory, 'tsconfig.build.json') }),
     // Rollup 默认会移除模块级指令，该插件在独立输出模块上恢复原有指令。
     preserveDirectives(),
     {
-      // CSS 和字体由生态插件编译，这里处理 CSS 入口占位模块及字体许可证。
-      name: 'style-assets',
-      buildStart() {
-        // 原样发布 Tailwind 配置，监听定义修改以同步更新发布文件。
-        this.addWatchFile(join(sourceDirectory, 'styles/theme-tokens.css'));
-      },
-      // generateBundle 在写入磁盘前执行，可剔除占位模块并添加资源文件。
-      generateBundle(_options, bundle) {
-        // PostCSS 的 extract 会留下 export default undefined，CSS 入口只保留提取出的样式。
-        // 仅移除 CSS 入口对应的 JS chunk，保留 CSS 资产和组件模块。
-        for (const [fileName, output] of Object.entries(bundle)) {
-          if (output.type === 'chunk' && output.isEntry && output.facadeModuleId?.endsWith('.css')) {
-            delete bundle[fileName];
-          }
-        }
-        // 使用方需要 @theme 和 @custom-variant 原始指令，不能经过 Tailwind 编译。
-        this.emitFile({
-          type: 'asset',
-          fileName: 'styles/theme-tokens.css',
-          source: readFileSync(join(sourceDirectory, 'styles/theme-tokens.css')),
-        });
-        // CJS 的逐文件 .d.ts 使用 CommonJS 模块上下文，支持 NodeNext 的 require 类型解析。
+      // 声明文件的模块上下文属于 JS/类型构建，不放进 CSS 构建模块。
+      name: 'cjs-type-context',
+      generateBundle() {
         this.emitFile({ type: 'asset', fileName: 'cjs/types/package.json', source: '{"type":"commonjs"}\n' });
-        // emitFile 是 Rollup 插件 API，将文件交给 Rollup 统一输出。
-        this.emitFile({
-          // asset 表示普通资源文件，不参与 JS 模块解析和转换。
-          type: 'asset',
-          // 相对于 output.dir 的输出路径。
-          fileName: 'styles/font/LICENSE',
-          // 文件内容，readFileSync 返回的 Buffer 可直接作为资源内容。
-          source: readFileSync(join(fontDirectory, 'LICENSE')),
-        });
       },
     },
   ],

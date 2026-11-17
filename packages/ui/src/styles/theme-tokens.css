@@ -3,7 +3,7 @@
  * --color-* 提供 bg-*、text-*、border-* 等颜色工具类，--radius-* 提供 rounded-*，--font-* 提供 font-*。
  * inline 让生成的工具类直接使用右侧表达式，例如 bg-primary 使用 var(--primary)。
  * 此文件原样发布，供使用方 Tailwind v4 编译；不使用 static，不强制输出全部变量声明。
- * globals.css 通过 reference 引用同一份定义，供组件库生成内联工具类。
+ * globals.css 普通导入同一份定义，供库预编译与应用统一编译共用。
  * -- 开头的名称是 CSS 自定义属性；var(--名称) 在元素上读取该变量，主题切换后可动态改变结果。
  * 这里主要映射变量，具体颜色值由主题和基础色文件提供。
  */

@@ -51,6 +51,23 @@ pnpm add @badnpm/ui
 npm install react@^19 react-dom@^19
 ```
 
+## 已使用 Tailwind v4 的应用
+
+下面的预编译样式示例适用于未使用 Tailwind 的应用。已有 Tailwind v4 时，在应用全局 CSS 中使用：
+
+```css
+/* 替代原有 @import 'tailwindcss'，不要再加载库的 styles/index.css / globals.css。 */
+@import '@badnpm/ui/styles/tailwind.css';
+/* 可选页面配色、滚动条与字体。 */
+@import '@badnpm/ui/styles/custom.css';
+@import '@badnpm/ui/styles/font/geist.css';
+```
+
+由入口内置库代码扫描、主题、状态变体和动画，再由应用 Tailwind 插件统一编译。
+Vite 应通过 main.tsx 加载这份应用全局 CSS；Next.js 应通过根 layout.tsx 加载。
+不要混用预编译入口，否则会重新引入两套同名工具类。应用自定义主题配置放在该入口之后。
+本方案要求 Tailwind v4，不适用于直接加载 CSS 的浏览器 link 标签。
+
 ## 引入样式
 
 ### 必需：组件样式

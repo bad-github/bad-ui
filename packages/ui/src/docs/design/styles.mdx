@@ -4,15 +4,28 @@ import { Meta } from '@storybook/addon-docs/blocks';
 
 # 样式
 
-`@badnpm/ui` 使用 Tailwind CSS v4、CSS 自定义属性与语义化设计令牌。组件通过源码中的工具类定义外观，npm 包提供预编译 CSS，使用方无需为内置样式额外配置 Tailwind。
+`@badnpm/ui` 使用 Tailwind CSS v4、CSS 自定义属性与语义化设计令牌。组件继续通过工具类定义外观，发布包提供两种接入模式：非 Tailwind 应用加载预编译 CSS，Tailwind v4 应用统一编译库与应用的工具类。
 
 ## 样式入口
 
-- **`@badnpm/ui/styles/index.css`**：必需入口，包含 Tailwind 重置、组件工具类、动画扩展、Base UI 通用样式、主题和基础色变量。
-- **`@badnpm/ui/styles/custom.css`**：可选入口，让 body 的背景色、文字色跟随主题，并提供滚动条样式；需与默认样式配合使用。
-- **`@badnpm/ui/styles/font/geist.css`**：可选字体入口，详见 **Design → Typography**。
-- **`@badnpm/ui/styles/theme-tokens.css`**：可选的 Tailwind v4 配置入口，原样保留 `@theme inline` 与 `@custom-variant`，供应用生成自己的工具类；需在应用 CSS 中通过 `@import` 引入。
-- **`@badnpm/ui/globals.css`**：默认样式的兼容入口，与 `styles/index.css` 二选一即可。
+**根据应用环境选择一个主入口，不要同时加载。**
+
+| 应用环境 | 主入口 | 工具类由谁生成 |
+| --- | --- | --- |
+| 未使用 Tailwind | `@badnpm/ui/styles/index.css` | 组件库构建时预编译 |
+| 使用 Tailwind v4 | `@badnpm/ui/styles/tailwind.css` | 应用的 Tailwind 插件统一编译 |
+
+- **`styles/index.css`**：包含 Tailwind 重置、组件工具类、动画、Base UI 通用样式、主题和基础色变量，可直接作为浏览器 CSS 使用。
+- **`styles/tailwind.css`**：原始 CSS 入口，加载 Tailwind、公共样式和主题令牌，并内置发布 ESM 代码的扫描路径；不加载预编译工具类，需要应用配置 Tailwind v4 的 Vite 或 PostCSS 插件。
+- **`styles/custom.css`**：可选，让 body 配色跟随主题并提供滚动条样式，可配合任一主入口使用。
+- **`styles/font/geist.css`**：可选字体入口，详见 **Design → Typography**。
+- **`styles/scrollbar.css`**：可独立使用的滚动条样式；custom.css 已包含它。
+- **`styles/theme-tokens.css`**：高级配置入口，仅提供令牌映射和 dark 变体，不是完整组件样式。常规接入无需单独加载。
+- **`globals.css`**：预编译 styles/index.css 的兼容入口，同样不能与 styles/tailwind.css 混用。
+
+JS 入口不会自动导入 CSS。两种模式都包含基础全局样式，共用页面主题变量，并不提供命名隔离。
+
+### 非 Tailwind 应用
 
 ```tsx
 // 在应用入口统一引入；Next.js App Router 中放在根布局。
@@ -20,7 +33,25 @@ import '@badnpm/ui/styles/index.css';
 import '@badnpm/ui/styles/custom.css'; // 可选
 ```
 
-JS 入口不会自动导入 CSS。默认样式含全局重置，接入已有应用时需检查样式顺序及覆盖关系。
+无需安装 Tailwind、shadcn、tw-animate-css 或字体包。库只预编译组件运行源码用到的工具类，不保证包含应用自行添加的任意 Tailwind 类；应用额外样式可直接使用普通 CSS。
+
+### Tailwind v4 应用
+
+在应用自己的全局 CSS 中引入，再由应用入口或 Next.js 根布局加载该文件：
+
+```css
+/* 替代原有 @import 'tailwindcss'。 */
+@import '@badnpm/ui/styles/tailwind.css';
+/* 可选页面配色、滚动条与字体。 */
+@import '@badnpm/ui/styles/custom.css';
+@import '@badnpm/ui/styles/font/geist.css';
+```
+
+接入时删除 JS 或其他 CSS 中的 styles/index.css / globals.css 导入。入口已包含主题映射、dark 变体、动画扩展和库代码扫描，通常无需额外安装 shadcn、tw-animate-css 或配置库的 @source。
+
+库侧栏的 hidden md:flex 与应用移动菜单的 flex md:hidden 在同一次编译中生成，避免两套同名工具类因加载顺序互相覆盖。**如果仍同时引入预编译入口，就会重新引入这个问题。**
+
+应用自定义 @theme 放在库入口之后。双方共享 Tailwind 的主题和断点，修改它们也会影响组件；不要移除库需要的令牌或改变状态变体含义。当前验证版本为 Tailwind 4.3.x，带全局 prefix 的应用需要额外适配。若应用禁用了自动扫描或自定义扫描根目录，仍需配置自身源码范围。
 
 ## 语义化颜色
 
@@ -58,10 +89,12 @@ CSS 可以直接消费变量，不依赖应用安装 Tailwind：
 
 - 库入口：`src/styles/index.css`，关闭自动扫描，仅扫描运行源码，排除 stories。
 - Storybook 入口：`.storybook/styles.css`，单独扫描组件、stories、MDX 文档和预览代码。
-- 公共样式：`src/styles/globals.css`，不声明扫描范围，由两个入口复用。
-- 令牌映射：`src/styles/theme-tokens.css`，仅维护一份定义；公共样式通过 `reference` 引用以生成内联工具类，同一文件原样发布，供使用方复用 Tailwind 配置。
+- 公共样式：`src/styles/globals.css`，不加载 Tailwind、不声明扫描范围，由预编译入口、Tailwind 应用入口和 Storybook 复用。
+- 令牌映射：`src/styles/theme-tokens.css`，仅维护一份定义，由公共样式普通导入，两种模式使用相同映射。
 - 页面与滚动条：`src/styles/custom.css`、`src/styles/scrollbar.css`。滚动条使用独立的原生 CSS，自有变量以 `--bad-scrollbar-` 开头，不依赖主题；不支持 WebKit 伪元素的浏览器使用标准滚动条属性。
-- 发布：Rollup / PostCSS 编译样式并复制字体资源，输出到 `dist/styles`。
+- Tailwind 应用入口：`src/styles/tailwind.css`，发布时原样保留 Tailwind 指令，扫描 `dist/esm`；它不导入预编译入口。
+- 发布：Rollup / PostCSS 编译独立的预编译 CSS 并复制字体资源；同时将公共原始 CSS 的相对依赖图输出到 `dist/styles/source`，携带第三方扩展和许可证，供应用编译。
+- 验证：先运行 `pnpm --filter @badnpm/ui build`，再运行 `pnpm --filter @badnpm/ui test-styles`。测试针对真实 npm tarball，检查依赖完整性、库与应用扫描、工具类单次生成、移动和桌面显示，以及无需 Tailwind 的预编译模式。浏览器验证需要 Playwright Chromium。
 - Storybook：Vite 直接加载源码样式；预览正常不等于发布包资源一定正常，发布前仍需验证构建产物。
 
 ## 独立使用滚动条样式
@@ -79,25 +112,16 @@ CSS 可以直接消费变量，不依赖应用安装 Tailwind：
 
 变量也可在特定滚动容器上覆盖。`.hidden-scrollbar` 隐藏滚动条但保留滚动能力；标准属性回退使用 `thin` 宽度，不支持精确尺寸、悬停色和圆角。
 
-## 按需复用 Tailwind 配置
+## 高级：单独复用主题令牌
 
-库的 index.css 已包含组件所需的编译后样式。如果应用自身也使用 Tailwind v4，并需要生成 bg-primary、rounded-lg、font-heading、dark:* 等工具类，可以额外导入配置：
+常规 Tailwind 应用使用 styles/tailwind.css 即可，不需要再单独导入 theme-tokens.css。以下入口只适用于自行组织样式体系、仅希望复用库令牌映射的场景：
 
 ```css
-/* 应用自己的全局 CSS，由应用的 Tailwind v4 构建处理。 */
-@import "tailwindcss";
-@import "@badnpm/ui/styles/index.css";
-@import "@badnpm/ui/styles/theme-tokens.css";
-/* 可选：加载 Geist 字体文件。 */
-@import "@badnpm/ui/styles/font/geist.css";
+@import 'tailwindcss';
+@import '@badnpm/ui/styles/theme-tokens.css';
+/* 底层主题变量需由应用自行提供。此示例不加载完整组件样式。 */
 ```
 
-```tsx
-<div className="bg-primary text-primary-foreground rounded-lg font-heading dark:opacity-90">
-  应用自己的内容
-</div>
-```
+该文件包含颜色、字体和圆角的 @theme inline 映射，以及跟随 .dark 的自定义 dark 变体；不包含底层配色、组件样式或字体文件。它不能代替任何一个完整样式入口，也不应与预编译 index.css 组合成常规 Tailwind 接入方案。
 
-该文件包含颜色、字体和圆角的 `@theme inline` 映射，以及跟随 `.dark` 类的 `@custom-variant dark`；无需在应用中重复定义。它不包含底层配色、组件样式或字体文件，底层变量由 index.css 或应用自己的主题提供。字体名称声明为 Geist Variable，实际字体文件需另外加载。
-
-这是**供 Tailwind 编译的配置**，不是浏览器直接读取的变量声明文件。请在应用 CSS 中使用 @import，不要通过 JS 导入或普通 link 标签期待其注册 Tailwind 配置。不使用 Tailwind 的应用仍然只需预编译的 index.css，无需此入口。这里无需 static，应用按其自身源码生成所需的工具类。
+这是供 Tailwind 编译的配置，需要在应用 CSS 中通过 @import 使用；不要作为普通 link 样式表期待浏览器解析 Tailwind 指令。非 Tailwind 应用无需此入口。

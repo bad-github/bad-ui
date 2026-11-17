@@ -3,8 +3,8 @@
  * @import 用于加载其他样式文件；包名从依赖中解析，./ 开头的路径相对于本文件。
  * 页面配色、滚动条和 Geist 字体通过独立入口按需加载。
  */
-/* Tailwind 加载与扫描范围由库和 Storybook 各自的样式入口声明。 */
-/* @import "tailwindcss"; */
+/* Tailwind 加载与扫描范围由预编译、消费方和 Storybook 各自的入口声明。
+ * 公共样式中不引入 Tailwind，不在这里固定扫描范围，也不依赖任何预编译工具类。 */
 /* 提供 animate-in、fade-in、zoom-in 等动画工具类，供主题切换按钮等组件使用。 */
 @import "tw-animate-css";
 /* 加载 shadcn 的 Tailwind 扩展，包括 data-open 等状态变体、折叠动画和滚动效果工具类。 */
@@ -13,16 +13,11 @@
 @import "./themes/index.css";
 /* 加载基础色变量；data-base-color 控制基础色，默认 Neutral，与主题配色独立组合。 */
 @import "./base-color/index.css";
-/*
- * reference：仅向 Tailwind 注册该文件中的主题令牌和 dark 变体，
- * 不因这次导入直接输出该文件自身的样式或主题变量声明；源码中用到的工具类仍会生成。
- * 文件内的 @theme inline 会把令牌右侧的表达式用于工具类的属性值：
- * 例如 --color-primary: var(--primary) 会生成 .bg-primary { background-color: var(--primary) }，
- * 而不是 background-color: var(--color-primary)；不是把 CSS 写入元素的 style 属性。
- * 因此组件工具类不依赖额外输出的 --color-primary 等映射变量声明，
- * 但仍依赖 themes / base-color 提供的 --primary 等底层变量。
+/* 两种入口共用同一份令牌：既用于库预编译，也向应用注册语义工具类。
+ * 使用普通导入而非 reference，使 font-sans 等默认主题变量也可输出。
+ * @theme inline 会将变量右侧表达式用于工具类，具体颜色由上面的主题文件提供。
  */
-@import "./theme-tokens.css" reference;
+@import "./theme-tokens.css";
 /* 加载 Base UI 组件的通用样式与动画，随默认组件样式一同提供。 */
 @import "./base-ui.css";
 /* 加载自定义组件样式。 */

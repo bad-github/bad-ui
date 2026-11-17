@@ -10,7 +10,9 @@ import { Meta } from '@storybook/addon-docs/blocks';
 
 ### 需要安装 Tailwind 或 shadcn 吗？
 
-- 使用包内组件不需要额外安装，组件库提供预编译 CSS。
+- 未使用 Tailwind 的应用加载 `styles/index.css`，无需额外安装 Tailwind。
+- 已有 Tailwind v4 的应用改用 `styles/tailwind.css`，由应用统一编译；不要同时加载预编译入口。
+- 两种模式均无需额外安装 shadcn 或 tw-animate-css。
 - 应用自己新增的 Tailwind 工具类仍需要应用自己的构建配置。
 - 应用需要提供兼容的 React 与 React DOM，当前组件库要求 19.x。
 

@@ -1,0 +1,55 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Development/Changelog/2026-11-17" />
+
+# 2026-11-17 · v0.0.4 · Tailwind 与非 Tailwind 双模式样式接入
+
+## 新增
+
+- 新增 **`@badnpm/ui/styles/tailwind.css`**，供 Tailwind v4 应用统一编译库与应用的工具类。入口包含 Tailwind、主题令牌、深色与状态变体、动画及手写组件样式，并内置发布 ESM 代码的扫描路径，通常无需使用方额外声明库的 `@source`。
+- 保留 **`@badnpm/ui/styles/index.css`** 预编译入口，非 Tailwind 应用可直接加载，无需安装或配置 Tailwind。
+- Tailwind 入口所需的原始 CSS、第三方样式扩展及许可证随 npm 包提供，无需使用方额外安装 shadcn 或 tw-animate-css。
+
+## 修复
+
+- 解决按新 Tailwind 入口接入时，库与应用分别编译同名全局工具类造成的响应式覆盖问题。例如应用移动菜单的 `flex md:hidden` 与库侧栏的 `hidden md:flex` 由同一次编译生成，避免两份工具类因加载顺序不同导致桌面菜单错误显示或侧栏消失。
+- Tailwind 入口不再加载预编译工具类；只有使用方按下方说明切换入口后，才能避免重复编译冲突。仅升级 npm 包而保留旧的双 CSS 接入方式，不能自动解决此问题。
+
+## 构建与文档
+
+- 将样式构建拆分到 `scripts/build-precompiled-styles.mjs` 和 `scripts/build-tailwind-styles.mjs`，分别负责预编译 CSS 与原始 CSS 交付，Rollup 主配置仅负责引用和组装。
+- 原始样式构建保留 Tailwind 指令，收集完整 CSS 导入图、改写发布路径并监听依赖变化；补充第三方 CSS 入口解析方式差异的注释。
+- 公共样式普通导入主题令牌，两种模式复用同一份主题、状态及组件样式定义。
+- 本地 Vite Demo 切换到 Tailwind 统一编译入口；更新 README、Design → Styles、FAQ 和 Vite / Next.js 接入指南。
+
+## 验证
+
+- UI 库构建、类型检查、本地 Vite Demo 生产构建及 Storybook 静态构建通过。
+- 新增 `pnpm --filter @badnpm/ui test-styles`：对真实 npm tarball 验证 CSS 依赖完整性、库与应用类名扫描、工具类单次生成，以及 Chromium 中移动端和桌面端的显示规则。
+- 验证非 Tailwind 模式直接加载发布包中的预编译 CSS，无需消费应用执行 Tailwind 编译。
+- 拆分构建脚本后重新执行库构建及样式回归测试，均通过。
+
+## 升级与发布说明
+
+- 本次组件包版本为 **0.0.4**，对应正式 Release 标签为 **v0.0.4**。
+- **Tailwind v4 应用**：删除原有 `@import 'tailwindcss'`，以及 JS / CSS 中库的 `styles/index.css` 或 `globals.css` 导入，在应用全局 CSS 中改为：
+
+```css
+/* 库与应用的工具类由应用的 Tailwind v4 插件统一生成。 */
+@import '@badnpm/ui/styles/tailwind.css';
+/* 可选页面配色、滚动条与字体。 */
+@import '@badnpm/ui/styles/custom.css';
+@import '@badnpm/ui/styles/font/geist.css';
+```
+
+- **非 Tailwind 应用**：继续使用预编译入口，接入方式保持兼容：
+
+```tsx
+import '@badnpm/ui/styles/index.css';
+// 页面样式与字体仍可按需加载。
+```
+
+- **两个主入口只能选一个**。`globals.css` 是预编译入口的兼容别名，也不能与 `styles/tailwind.css` 混用。Tailwind 模式已包含主题映射，常规接入无需单独导入 `theme-tokens.css`。
+- Tailwind 模式需要应用配置 Tailwind v4 的 Vite 或 PostCSS 插件；当前验证版本为 4.3.x。双方共享主题和断点配置，本方案不提供样式命名隔离，带全局 prefix 的应用需要额外适配。
+- 两个消费项目 `react-vite-admin` 和 `next-app` 尚未切换到新入口，需升级包并按上述说明接入。
+- 本次状态为 **待发布 / 待部署**，尚未执行 npm 发布或 Storybook 线上部署。
