@@ -1,23 +1,23 @@
-# shadcn/ui monorepo template
+# @badnpm/ui
 
-This is a Vite monorepo template with shadcn/ui.
+基于 shadcn/ui 的 React 19 组件库。
 
-ESM、CommonJS、UMD 和可选 CSS 的完整示例见[组件库使用说明](./packages/ui/README.md)。
+## 安装
 
-## Adding components
-
-To add components to your app, run the following command at the root of your `web` app:
-
-```bash
-pnpm dlx shadcn@latest add button -c apps/web
+```sh
+npm install @badnpm/ui react@^19 react-dom@^19
 ```
 
-This will place the ui components in the `packages/ui/src/components` directory.
+## 效果预览
 
-## Using components
+### Button 按钮
 
-To use the components in your app, import them from the `ui` package.
+![Button 按钮效果预览](./assets/button.png)
 
-```tsx
-import { Button } from "@badnpm/ui";
-```
+### Input 输入框
+
+![Input 输入框效果预览](./assets/input.png)
+
+## 使用说明
+
+样式引入、主题配置和完整示例请查看[详细使用文档](./packages/ui/README.md)。

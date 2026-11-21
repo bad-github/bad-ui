@@ -5,8 +5,11 @@ import { Button } from '../button';
 import { useConfig } from '../../providers/config-provider';
 import { useTheme } from '../../providers/theme-provider';
 import { MoonIcon, SunIcon } from './icons';
+import { animateThemeChange, type ThemeToggleAnimation } from './theme-animation';
 
 type ThemeToggleProps = Omit<ComponentProps<typeof Button>, 'children'> & {
+  /** 主题切换动画，默认为 none；circle 为圆形扩散，dots 为点阵扩散。 */
+  animation?: ThemeToggleAnimation;
   /** 切换到深色模式的无障碍文案，默认为“切换到深色主题”。 */
   darkLabel?: string;
   /** 切换到浅色模式的无障碍文案，默认为“切换到浅色主题”。 */
@@ -14,6 +17,7 @@ type ThemeToggleProps = Omit<ComponentProps<typeof Button>, 'children'> & {
 };
 
 function ThemeToggle({
+  animation = 'none',
   darkLabel: darkLabelProp,
   lightLabel: lightLabelProp,
   variant = 'outline',
@@ -47,7 +51,8 @@ function ThemeToggle({
       onClick={(event) => {
         // 先执行调用方回调，允许通过 preventDefault 取消主题切换。
         onClick?.(event);
-        if (!event.defaultPrevented) toggleTheme();
+        if (event.defaultPrevented) return;
+        animateThemeChange(event.currentTarget, animation, toggleTheme);
       }}
     >
       <MoonIcon data-icon="inline-start" aria-hidden="true" className="theme-toggle__icon theme-toggle__moon" />

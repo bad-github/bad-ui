@@ -1,3 +1,23 @@
+.theme-toggle__dots {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 2147483647;
+  pointer-events: none;
+}
+
+/* 仅在主题扩散期间覆盖浏览器默认淡入淡出，不影响其他页面过渡。 */
+:root[data-theme-toggle-transition='circle']::view-transition-old(root),
+:root[data-theme-toggle-transition='circle']::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+:root[data-theme-toggle-transition='circle']::view-transition-new(root) {
+  z-index: 1;
+}
+
 /* 这里只处理图标、动画和无障碍文字，按钮外观及交互仍由项目现有 Button 提供。 */
 .theme-toggle {
   --theme-toggle-icon-size: 1rem;

@@ -1,0 +1,39 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Development/Changelog/2026-11-21" />
+
+# 2026-11-21 · v0.0.5 · 主题切换动画与组件效果预览
+
+## 新增
+
+- **ThemeToggle** 新增 `animation` 属性，可选 `none`、`circle`、`dots`，默认 `none`，保留直接切换主题的行为。
+- `circle` 使用 View Transition API，从按钮中心圆形扩散覆盖页面，持续约 1 秒；浏览器不支持时直接切换。
+- `dots` 使用 Canvas 绘制点阵幕布，从按钮中心向外铺开；切换主题后，再从中心向外消散，持续约 1.04 秒。幕布颜色读取当前主题背景变量，图标继续使用现有 SVG。
+
+```tsx
+<ThemeToggle animation="circle" />
+<ThemeToggle animation="dots" />
+```
+
+## 交互与清理
+
+- 动画遵循系统“减少动态效果”偏好；页面隐藏时直接完成主题切换。
+- 动画期间忽略重复切换，保留调用方通过 `onClick` 的 `preventDefault()` 取消切换的能力。
+- 点阵动画结束或页面隐藏时，清理 Canvas、动画帧、定时器与监听，移除全页动画标记。
+- 点阵消散方向调整为从按钮向外推进，避免新主题向按钮中心收拢。
+
+## Storybook 与文档
+
+- ThemeToggle 移入 **Custom Components** 分组，新增 Circle、Dots 示例和动画类型选择控件，同步更新图标文档中的分组指引。
+- 更新 ThemeToggle 迁移说明，补充动画配置、兼容行为与动画工具文件依赖。
+- 根目录 README 精简为组件库简介、安装命令、Button / Input 效果图及详细使用文档链接；图片资源位于 `assets/`，随仓库提交后可在 GitHub 直接展示。
+
+## 验证
+
+- 主题动画实现通过 TypeScript 类型检查与 ESLint 检查。
+- ThemeToggle 的 6 项 Chromium 浏览器测试通过，覆盖默认切换、圆形与点阵动画、禁用、取消切换和旧实现；点阵示例检查双向切换、存储更新与遮罩清理。
+
+## 发布说明
+
+- 组件包版本由 `0.0.4` 更新为 **0.0.5**。
+- 本次状态为 **待提交 / 待发布 / 待部署**，尚未执行本次代码提交、npm 发布或线上部署。

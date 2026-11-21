@@ -1,5 +1,18 @@
 # 迁移说明
 
+通过 `animation` 选择主题切换效果，默认 `none`：
+
+```tsx
+<ThemeToggle animation="none" />
+<ThemeToggle animation="circle" />
+<ThemeToggle animation="dots" />
+```
+
+`circle` 从按钮中心圆形扩散；`dots` 用 Canvas 绘制点阵幕布，从按钮向外铺开，切换主题后再从按钮向外消散，约 1.04 秒。
+设置了减少动态效果时直接切换；`circle` 在不支持 View Transition API 时也直接切换。
+动画期间忽略重复切换，结束后自动清理遮罩。图标继续使用现有 SVG。
+迁移时同时复制 `theme-animation.ts`，它依赖 `react-dom` 的 `flushSync`。
+
 复制以下文件：
 
 - `index.tsx`：继续使用项目已有的 Button 和主题切换函数。

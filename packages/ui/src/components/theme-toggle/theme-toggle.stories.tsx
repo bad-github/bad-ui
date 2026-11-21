@@ -13,7 +13,7 @@ function ToggleExample({ backup = false, ...args }: ThemeToggleProps & { backup?
   const { theme } = useTheme();
   const Component = backup ? ThemeToggleBackup : ThemeToggle;
   return (
-    <section className="flex flex-col gap-4" aria-label="主题按钮示例" style={{ padding: 24 }}>
+    <section className="gap-4 flex flex-col" aria-label="主题按钮示例" style={{ padding: 24 }}>
       <Component {...args} />
       <p role="status">当前主题：{theme}</p>
     </section>
@@ -21,7 +21,7 @@ function ToggleExample({ backup = false, ...args }: ThemeToggleProps & { backup?
 }
 
 const meta = {
-  title: 'Components/ThemeToggle',
+  title: 'Custom Components/ThemeToggle',
   component: ThemeToggle,
   args: { onClick: fn(), disabled: false },
   render: (args) => (
@@ -39,6 +39,11 @@ const meta = {
     },
   },
   argTypes: {
+    animation: {
+      control: 'select',
+      options: ['none', 'circle', 'dots'],
+      description: '主题动画：关闭、圆形扩散或点阵扩散；默认关闭，尊重减少动态效果设置。',
+    },
     darkLabel: { control: 'text', description: '当前浅色时按钮的可访问名称，说明切换到深色。' },
     lightLabel: { control: 'text', description: '当前深色时按钮的可访问名称，说明切换到浅色。' },
     disabled: { control: 'boolean', description: '禁用按钮，不允许用户切换主题。' },
@@ -64,8 +69,38 @@ export const Default: Story = {
       ).not.toBeVisible();
       await expect(canvas.getByRole('status')).toHaveTextContent('当前主题：dark');
       await expect(localStorage.getItem(storageKey)).toBe('dark');
+      await waitFor(() => expect(document.documentElement).not.toHaveAttribute('data-theme-toggle-transition'), {
+        timeout: 3000,
+      });
       await userEvent.click(canvas.getByRole('button', { name: '切换到浅色主题' }));
       await waitFor(() => expect(canvas.getByRole('status')).toHaveTextContent('当前主题：light'));
+      await waitFor(() => expect(document.documentElement).not.toHaveAttribute('data-theme-toggle-transition'), {
+        timeout: 3000,
+      });
+    });
+  },
+};
+
+export const Circle: Story = {
+  args: { animation: 'circle' },
+  play: Default.play,
+};
+
+export const Dots: Story = {
+  args: { animation: 'dots' },
+  play: async ({ canvas, userEvent }) => {
+    if (!shouldRunInteractions) return;
+    await userEvent.click(canvas.getByRole('button', { name: '切换到深色主题' }));
+    await waitFor(() => expect(canvas.getByRole('status')).toHaveTextContent('当前主题：dark'));
+    await waitFor(() => expect(document.documentElement).not.toHaveAttribute('data-theme-toggle-transition'), {
+      timeout: 3000,
+    });
+    await expect(document.querySelector('.theme-toggle__dots')).toBeNull();
+    await expect(localStorage.getItem(storageKey)).toBe('dark');
+    await userEvent.click(canvas.getByRole('button', { name: '切换到浅色主题' }));
+    await waitFor(() => expect(canvas.getByRole('status')).toHaveTextContent('当前主题：light'));
+    await waitFor(() => expect(document.documentElement).not.toHaveAttribute('data-theme-toggle-transition'), {
+      timeout: 3000,
     });
   },
 };
